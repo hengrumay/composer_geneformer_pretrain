@@ -7,7 +7,8 @@ workspace:
 # Option 2: run from a local repo snapshot (tarball uploaded by sgcli).
 # IMPORTANT: this requires `local_repo_path` to be a git repo with a clean working tree.
 repo_snapshot:
-  local_repo_path: /Users/may.merkletan/Documents/Projects/_backups/db_backups/SGC_testing/sgc_cli_test/geneformer_sgc_cli_test
+  # Point this at the git repo you want snapshotted/uploaded by sgcli.
+  local_repo_path: /Users/may.merkletan/Documents/Projects/Merck/composer_geneformer_pretrain
 
 environment:
   dependencies: requirements.yaml
