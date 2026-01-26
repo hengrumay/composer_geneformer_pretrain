@@ -1,12 +1,51 @@
-echo ">>> Installing Geneformer"
-cd /composer_geneformer_pretrain
-sh geneformer_prep.sh 
+set -euo pipefail
 
-echo ">>> Installing dependencies"
-pip install -r requirements.txt
+REPO_DIR="$(pwd)"
+echo ">>> Repo dir: ${REPO_DIR}"
 
-#create working dirrectory
+echo ">>> Installing Geneformer (python package)"
+sh geneformer_prep.sh
+
+echo ">>> Installing repo dependencies"
+python -m pip install -r requirements.txt
+
+# Create working directory (config can override)
 mkdir -p /pretrain/temp
+
+echo ">>> Starting training (single-node torchrun)"
+export MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING=true
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+
+# Auto-detect GPUs per node unless NPROC_PER_NODE is explicitly set.
+if [ -z "${NPROC_PER_NODE:-}" ]; then
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    NPROC_PER_NODE="$(nvidia-smi -L | wc -l | tr -d ' ')"
+  else
+    # Fallback: assume 1 GPU
+    NPROC_PER_NODE="1"
+  fi
+fi
+echo ">>> Using NPROC_PER_NODE=${NPROC_PER_NODE}"
+
+# Multi-node support (A10 multi-GPU == multi-node): set NNODES>1 in workload.yaml env_variables.
+NNODES="${NNODES:-1}"
+NODE_RANK="${NODE_RANK:-0}"
+MASTER_ADDR="${MASTER_ADDR:-127.0.0.1}"
+MASTER_PORT="${MASTER_PORT:-29400}"
+
+if [ "${NNODES}" != "1" ]; then
+  echo ">>> Multi-node torchrun: NNODES=${NNODES} NODE_RANK=${NODE_RANK} RDZV=${MASTER_ADDR}:${MASTER_PORT}"
+  torchrun \
+    --nnodes="${NNODES}" \
+    --nproc_per_node="${NPROC_PER_NODE}" \
+    --node_rank="${NODE_RANK}" \
+    --rdzv_backend=c10d \
+    --rdzv_endpoint="${MASTER_ADDR}:${MASTER_PORT}" \
+    train.py parameters_sgcli_smoke.yaml
+else
+  echo ">>> Single-node torchrun (--standalone)"
+  torchrun --standalone --nproc_per_node="${NPROC_PER_NODE}" train.py parameters_sgcli_smoke.yaml
+fi
 
 #sh download_dataset.sh
 ##################################################

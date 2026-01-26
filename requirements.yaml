@@ -1,0 +1,5 @@
+version: "4"
+dependencies:
+  # Keep this minimal. We install the repo dependencies inside commands.sh after the repo snapshot is extracted.
+  - pip
+

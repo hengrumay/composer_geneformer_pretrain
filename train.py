@@ -47,11 +47,11 @@ def main(cfg: DictConfig):
     np.random.seed(seed_val)
 
     working_dir = cfg.working_dir
-    data_bucket_name = cfg.data_bucket_name
-    data_bucket_key = cfg.data_bucket_key
+    data_bucket_name = cfg.get("data_bucket_name", None)
+    data_bucket_key = cfg.get("data_bucket_key", None)
 
-    token_dictionary_filename = cfg.token_dictionary_filename
-    remote_data_dir = f"s3://{data_bucket_name}/{data_bucket_key}"
+    token_dictionary_filename = cfg.get("token_dictionary_filename", "token_dictionary.pkl")
+    remote_data_dir = f"s3://{data_bucket_name}/{data_bucket_key}" if data_bucket_name and data_bucket_key else None
     streaming_dataset_location = cfg.streaming_dataset_location
 
     # batch size for training and eval
@@ -59,7 +59,9 @@ def main(cfg: DictConfig):
     eval_batch_size = cfg.eval_batch_size
     mlm_probability = cfg.mlm_probability
 
-    remote_streaming_dataset_location = f"{remote_data_dir}/{streaming_dataset_location}"
+    remote_streaming_dataset_location = (
+        f"{remote_data_dir}/{streaming_dataset_location}" if remote_data_dir else None
+    )
     local_streaming_dataset_location = f"{cfg.local_data_dir}/{streaming_dataset_location}"
     streaming_dataset_cache_location = f"{working_dir}/streaming/cache"
 
@@ -92,8 +94,22 @@ def main(cfg: DictConfig):
         for name, algorithm_cfg in cfg.get('algorithms', {}).items()
     ]
     # Read the token dictionary file
-    s3 = boto3.resource('s3')
-    token_dictionary = pickle.loads(s3.Bucket(data_bucket_name).Object(f"{data_bucket_key}/{token_dictionary_filename}").get()['Body'].read())
+    if data_local:
+        token_dictionary_path = cfg.get("token_dictionary_path", None)
+        if not token_dictionary_path:
+            # Common layout for Volumes: <...>/geneformer/data/dataset (local_data_dir)
+            # token dictionary at the parent directory: <...>/geneformer/data/token_dictionary.pkl
+            token_dictionary_path = os.path.join(os.path.dirname(cfg.local_data_dir), token_dictionary_filename)
+        with open(token_dictionary_path, "rb") as f:
+            token_dictionary = pickle.load(f)
+        print(f"Loaded token dictionary from local path: {token_dictionary_path}")
+    else:
+        if not data_bucket_name or not data_bucket_key:
+            raise ValueError("Remote data_location requires data_bucket_name and data_bucket_key")
+        s3 = boto3.resource("s3")
+        token_dictionary = pickle.loads(
+            s3.Bucket(data_bucket_name).Object(f"{data_bucket_key}/{token_dictionary_filename}").get()["Body"].read()
+        )
 
     ### Load model
     model_config = build_model_config(cfg,token_dictionary)
@@ -113,8 +129,18 @@ def main(cfg: DictConfig):
         streaming_dataset_train = StreamingDataset(local=f"{local_streaming_dataset_location}/train" ,batch_size=train_batch_size)
         streaming_dataset_eval = StreamingDataset(local=f"{local_streaming_dataset_location}/test" ,batch_size=eval_batch_size)        
     else:
-        streaming_dataset_train = StreamingDataset(remote=f"{remote_streaming_dataset_location}/train", local=f"{streaming_dataset_cache_location}/train" ,batch_size=train_batch_size)
-        streaming_dataset_eval = StreamingDataset(remote=f"{remote_streaming_dataset_location}/test", local=f"{streaming_dataset_cache_location}/test" ,batch_size=eval_batch_size)
+        if remote_streaming_dataset_location is None:
+            raise ValueError("Remote data_location requires a valid remote_data_dir")
+        streaming_dataset_train = StreamingDataset(
+            remote=f"{remote_streaming_dataset_location}/train",
+            local=f"{streaming_dataset_cache_location}/train",
+            batch_size=train_batch_size,
+        )
+        streaming_dataset_eval = StreamingDataset(
+            remote=f"{remote_streaming_dataset_location}/test",
+            local=f"{streaming_dataset_cache_location}/test",
+            batch_size=eval_batch_size,
+        )
 
     #Prepare composer model
     composer_model = HuggingFaceModel(model)

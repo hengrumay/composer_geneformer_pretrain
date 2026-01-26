@@ -1,0 +1,27 @@
+experiment_name: geneformer-pretrain-sgcli-smoke
+
+workspace:
+  host: https://e2-dogfood.staging.cloud.databricks.com/
+
+# Option 1: run from GitHub (use this after local testing is stable)
+git_repo: https://github.com/hengrumay/composer_geneformer_pretrain.git
+git_branch: mmt_sgc_cli_test
+
+environment:
+  # Keep this minimal; commands.sh installs deps after clone.
+  dependencies: requirements.yaml
+  env_variables:
+    NCCL_DEBUG: "WARN"
+    # Used by commands.sh to switch between single-node and multi-node torchrun.
+    NNODES: "1"
+
+compute:
+  # A10 has 1 GPU per node in this sgcli wheel; gpus==nodes for A10.
+  gpus: 1
+  gpu_type: a10
+
+# Run the repo's commands.sh directly (it should be compatible with both A10 and H100).
+bash_script: commands.sh
+
+max_retries: 0
+
