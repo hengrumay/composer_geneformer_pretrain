@@ -95,9 +95,16 @@ def build_scheduler(cfg):
 
 def build_optimizer(cfg, model):
     if cfg.name == 'decoupled_adamw':
+        # OmegaConf lists are ListConfig, which can break PyTorch checkpoint
+        # serialization (e.g., optimizer state dict containing ListConfig).
+        # Convert to plain python types.
+        try:
+            betas = tuple(om.to_container(cfg.betas, resolve=True))  # type: ignore[arg-type]
+        except Exception:
+            betas = tuple(cfg.betas)
         return DecoupledAdamW(model.parameters(),
                               lr=cfg.lr,
-                              betas=cfg.betas,
+                              betas=betas,
                               eps=cfg.eps,
                               weight_decay=cfg.weight_decay)
     else:
