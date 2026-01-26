@@ -77,5 +77,7 @@ autoresume: false
 save_interval: 1ep
 save_num_checkpoints_to_keep: 1
 save_overwrite: true
-save_folder: dbfs:/tmp/geneformer_sgcli_smoke/checkpoints
+# Composer's UC object store expects Unity Catalog Volume paths to start with "Volumes"
+# (no leading slash). Use a writable location in your UC Volume.
+save_folder: Volumes/main/srijit_nair/geneformer/tmp/geneformer_sgcli_smoke/checkpoints
 
