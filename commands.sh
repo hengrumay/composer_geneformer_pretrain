@@ -4,7 +4,8 @@ REPO_DIR="$(pwd)"
 echo ">>> Repo dir: ${REPO_DIR}"
 
 echo ">>> Installing Geneformer (python package)"
-sh geneformer_prep.sh
+# Use bash explicitly; /bin/sh may be dash and does not support `set -o pipefail`.
+bash geneformer_prep.sh
 
 echo ">>> Installing repo dependencies"
 python -m pip install -r requirements.txt

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -euo pipefail
 
 # Install Geneformer as a python package without requiring apt/git-lfs.
