@@ -1,4 +1,4 @@
-experiment_name: geneformer-pretrain-sgcli-smoke
+experiment_name: geneformer-sgcli-mmt-test
 
 workspace:
   # Change to your workspace host (must match where you run `sgcli` auth).
