@@ -35,6 +35,12 @@ from omegaconf import DictConfig
 
 from cfgutils import *
 
+def _as_long_tensor(x):
+    """Ensure token ids are int64 tensors (required by HF MLM collator)."""
+    if isinstance(x, torch.Tensor):
+        return x.to(dtype=torch.long)
+    return torch.tensor(x, dtype=torch.long)
+
 
 
 
@@ -158,10 +164,18 @@ def main(cfg: DictConfig):
             mlm_probability=mlm_probability
         )
 
+    # The streaming dataset sometimes yields float dtype for token ids; HF's MLM collator
+    # expects integer token ids (torch.long). Cast defensively here.
+    def collate_fn(features):
+        for f in features:
+            if "input_ids" in f:
+                f["input_ids"] = _as_long_tensor(f["input_ids"])
+        return data_collator(features)
+
     train_dataloader = DataLoader(streaming_dataset_train,
                             shuffle=False, 
                             drop_last=False, 
-                            collate_fn=data_collator,
+                            collate_fn=collate_fn,
                             batch_size=train_batch_size,
                             num_workers = 32,
                             pin_memory = True,
@@ -170,7 +184,7 @@ def main(cfg: DictConfig):
     eval_dataloader = DataLoader(streaming_dataset_eval,
                             shuffle=False, 
                             drop_last=False, 
-                            collate_fn=data_collator,
+                            collate_fn=collate_fn,
                             batch_size=eval_batch_size,
                             num_workers = 32,
                             pin_memory = True,
