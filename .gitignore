@@ -1,0 +1,76 @@
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Virtualenv / env files
+.venv/
+venv/
+.env
+.env.*
+
+# Logs / temp
+*.log
+*.tmp
+
+# Tooling / IDE
+.idea/
+.vscode/
+
+# Databricks / sgcli (best-effort; adjust if you rely on these locally)
+.databricks/
+.serverless*/
+.sgcli*/
+
+# Local scratch / copies (do not commit)
+original/
+
+# Keep ONLY this wheel; ignore everything else in the folder
+SGC_CLI_WHEELS/*
+!SGC_CLI_WHEELS/databricks_serverless_gpu_cli-0.0.1-py3-none-any.whl
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Virtualenv / env files
+.venv/
+venv/
+.env
+.env.*
+
+# Logs / temp
+*.log
+*.tmp
+
+# Tooling / IDE
+.idea/
+.vscode/
+
+# Databricks / sgcli (best-effort; adjust if you rely on these locally)
+.databricks/
+.serverless*/
+.sgcli*/
+
+# Local scratch / copies (do not commit)
+original/
+
+# Keep ONLY this wheel; ignore everything else in the folder
+SGC_CLI_WHEELS/*
+!SGC_CLI_WHEELS/databricks_serverless_gpu_cli-0.0.1-py3-none-any.whl
