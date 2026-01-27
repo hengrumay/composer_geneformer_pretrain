@@ -20,11 +20,11 @@ environment:
     # Used by commands.sh to switch between single-node and multi-node torchrun.
     # For A10: set NNODES == gpus (since A10 has 1 GPU per node).
     # For H100 single-node 8x: NNODES=1.
-    NNODES: "1"
+    NNODES: "8"
 
 compute:
   # Default: single-node A10 (1 GPU per node) for faster scheduling
-  gpus: 1
+  gpus: 8
   gpu_type: a10
 
 # --- compute presets (toggle by commenting/uncommenting the whole block) ---

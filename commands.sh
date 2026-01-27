@@ -29,10 +29,17 @@ echo ">>> Using NPROC_PER_NODE=${NPROC_PER_NODE}"
 # Multi-node support (A10 multi-GPU == multi-node): set NNODES>1 in workload.yaml env_variables.
 NNODES="${NNODES:-1}"
 NODE_RANK="${NODE_RANK:-0}"
-MASTER_ADDR="${MASTER_ADDR:-127.0.0.1}"
+MASTER_ADDR="${MASTER_ADDR:-}"
 MASTER_PORT="${MASTER_PORT:-29400}"
 
 if [ "${NNODES}" != "1" ]; then
+  if [ -z "${MASTER_ADDR}" ] || [ -z "${NODE_RANK}" ]; then
+    echo "ERROR: Multi-node run requested (NNODES=${NNODES}) but MASTER_ADDR/NODE_RANK not set."
+    echo "Expected sgcli/runtime to provide: MASTER_ADDR, MASTER_PORT, NODE_RANK (and optionally NNODES)."
+    echo "--- Environment (filtered) ---"
+    env | egrep '^(NNODES|NODE_RANK|MASTER_ADDR|MASTER_PORT|RANK|WORLD_SIZE|LOCAL_RANK)=' || true
+    exit 2
+  fi
   echo ">>> Multi-node torchrun: NNODES=${NNODES} NODE_RANK=${NODE_RANK} RDZV=${MASTER_ADDR}:${MASTER_PORT}"
   torchrun \
     --nnodes="${NNODES}" \
