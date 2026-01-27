@@ -40,16 +40,16 @@ if [ "${NNODES}" != "1" ]; then
     --node_rank="${NODE_RANK}" \
     --rdzv_backend=c10d \
     --rdzv_endpoint="${MASTER_ADDR}:${MASTER_PORT}" \
-    train.py parameters_sgcli_smoke.yaml
+    train.py parameters_sgcli.yaml
 else
   if [ "${NPROC_PER_NODE}" = "1" ]; then
     # For single-GPU smoke tests, avoid torchrun/distributed rendezvous entirely.
     # Some environments can segfault inside torch.distributed even with 1 process.
     echo ">>> Single-node single-process run (no torchrun): python train.py"
-    python train.py parameters_sgcli_smoke.yaml
+    python train.py parameters_sgcli.yaml
   else
     echo ">>> Single-node torchrun (--standalone)"
-    torchrun --standalone --nproc_per_node="${NPROC_PER_NODE}" train.py parameters_sgcli_smoke.yaml
+    torchrun --standalone --nproc_per_node="${NPROC_PER_NODE}" train.py parameters_sgcli.yaml
   fi
 fi
 

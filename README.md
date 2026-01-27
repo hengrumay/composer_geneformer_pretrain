@@ -53,7 +53,7 @@ From this folder (`geneformer_sgc_cli_test/`), copy these into the root of your 
 
 - `commands.sh`
 - `train.py`
-- `parameters_sgcli_smoke.yaml`
+- `parameters_sgcli.yaml`
 - `geneformer_prep.sh`
 - (optional) `README.md`
 
@@ -65,7 +65,7 @@ cd composer_geneformer_pretrain
 git checkout mmt_sgc_cli_test
 
 # copy files in, then:
-git add commands.sh train.py geneformer_prep.sh parameters_sgcli_smoke.yaml README.md
+git add commands.sh train.py geneformer_prep.sh parameters_sgcli.yaml README.md
 git commit -m "Make sgcli run use UC Volumes + torchrun launcher"
 git push
 ```
