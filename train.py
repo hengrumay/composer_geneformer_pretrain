@@ -19,10 +19,7 @@ import boto3
 import torch
 from torch.utils.data import DataLoader
 
-from transformers import BertConfig, BertForMaskedLM, DataCollatorForLanguageModeling
-
-import geneformer
-from geneformer.pretrainer import GeneformerPreCollator
+from transformers import BertConfig, BertForMaskedLM
 
 from composer.models.huggingface import HuggingFaceModel
 from composer.utils import reproducibility
@@ -40,6 +37,45 @@ def _as_long_tensor(x):
     if isinstance(x, torch.Tensor):
         return x.to(dtype=torch.long)
     return torch.tensor(x, dtype=torch.long)
+
+def _mlm_collate_fn(
+    features,
+    *,
+    vocab_size: int,
+    mask_token_id: int,
+    pad_token_id: int,
+    mlm_probability: float,
+):
+    """Minimal BERT-style MLM collator (avoids heavy geneformer dependency tree)."""
+    input_ids = torch.stack([_as_long_tensor(f["input_ids"]) for f in features], dim=0)
+
+    labels = input_ids.clone()
+
+    # Do not mask padding.
+    probability_matrix = torch.full(labels.shape, mlm_probability, dtype=torch.float)
+    probability_matrix = probability_matrix.masked_fill(input_ids.eq(pad_token_id), 0.0)
+
+    masked_indices = torch.bernoulli(probability_matrix).bool()
+    labels[~masked_indices] = -100
+
+    # 80% -> [MASK]
+    indices_replaced = (
+        torch.bernoulli(torch.full(labels.shape, 0.8, dtype=torch.float)).bool()
+        & masked_indices
+    )
+    input_ids[indices_replaced] = mask_token_id
+
+    # 10% -> random token
+    indices_random = (
+        torch.bernoulli(torch.full(labels.shape, 0.5, dtype=torch.float)).bool()
+        & masked_indices
+        & ~indices_replaced
+    )
+    random_words = torch.randint(vocab_size, labels.shape, dtype=torch.long)
+    input_ids[indices_random] = random_words[indices_random]
+
+    # 10% -> keep original
+    return {"input_ids": input_ids, "labels": labels}
 
 
 
@@ -125,7 +161,6 @@ def main(cfg: DictConfig):
 
     config = BertConfig(**model_config)
     model = BertForMaskedLM(config)
-    tokenizer = GeneformerPreCollator(token_dictionary=token_dictionary)
     model.train()
     print(model)
 
@@ -157,20 +192,21 @@ def main(cfg: DictConfig):
     # Scheduler
     scheduler = build_scheduler(cfg.scheduler)
 
-    #data collator
-    data_collator = DataCollatorForLanguageModeling(
-            tokenizer=tokenizer, 
-            mlm=True, 
-            mlm_probability=mlm_probability
-        )
+    pad_token_id = int(token_dictionary.get("<pad>", 0))
+    mask_token_id = token_dictionary.get("<mask>", None)
+    if mask_token_id is None:
+        raise ValueError('Token dictionary is missing "<mask>" token id required for MLM.')
+    mask_token_id = int(mask_token_id)
+    vocab_size = len(token_dictionary)
 
-    # The streaming dataset sometimes yields float dtype for token ids; HF's MLM collator
-    # expects integer token ids (torch.long). Cast defensively here.
     def collate_fn(features):
-        for f in features:
-            if "input_ids" in f:
-                f["input_ids"] = _as_long_tensor(f["input_ids"])
-        return data_collator(features)
+        return _mlm_collate_fn(
+            features,
+            vocab_size=vocab_size,
+            mask_token_id=mask_token_id,
+            pad_token_id=pad_token_id,
+            mlm_probability=mlm_probability,
+        )
 
     train_dataloader = DataLoader(streaming_dataset_train,
                             shuffle=False, 

@@ -3,9 +3,7 @@ set -euo pipefail
 REPO_DIR="$(pwd)"
 echo ">>> Repo dir: ${REPO_DIR}"
 
-echo ">>> Installing Geneformer (python package)"
-# Use bash explicitly; /bin/sh may be dash and does not support `set -o pipefail`.
-bash geneformer_prep.sh
+echo ">>> Skipping Geneformer pip install (not required for training; avoids heavy deps like anndata/scanpy/ray)"
 
 echo ">>> Installing repo dependencies"
 python -m pip install -r requirements.txt
