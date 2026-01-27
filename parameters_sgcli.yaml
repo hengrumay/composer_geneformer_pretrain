@@ -64,8 +64,9 @@ eval_batch_size: 16
 device_train_microbatch_size: 16
 train_subset_num_batches: 10
 eval_subset_num_batches: 2
-max_duration: 1ep
-eval_interval: 1ep
+# For StreamingDataset, an "epoch" can be very large/ill-defined; use batches for smoke tests.
+max_duration: 10ba
+eval_interval: 10ba
 
 progress_bar: false
 log_to_console: true
@@ -74,7 +75,7 @@ console_log_interval: 1ba
 autoresume: false
 
 # Save checkpoints somewhere that doesn't require AWS creds
-save_interval: 1ep
+save_interval: 10ba
 save_num_checkpoints_to_keep: 1
 save_overwrite: true
 # Composer's UC object store expects Unity Catalog Volume paths to start with "Volumes"
