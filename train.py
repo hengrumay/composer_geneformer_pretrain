@@ -47,7 +47,11 @@ def _mlm_collate_fn(
     mlm_probability: float,
 ):
     """Minimal BERT-style MLM collator (avoids heavy geneformer dependency tree)."""
-    input_ids = torch.stack([_as_long_tensor(f["input_ids"]) for f in features], dim=0)
+    # Pad variable-length sequences to max length in batch.
+    seqs = [_as_long_tensor(f["input_ids"]).view(-1) for f in features]
+    input_ids = torch.nn.utils.rnn.pad_sequence(
+        seqs, batch_first=True, padding_value=pad_token_id
+    )
 
     labels = input_ids.clone()
 
@@ -57,6 +61,8 @@ def _mlm_collate_fn(
 
     masked_indices = torch.bernoulli(probability_matrix).bool()
     labels[~masked_indices] = -100
+    # Ignore loss on padding tokens as well.
+    labels = labels.masked_fill(input_ids.eq(pad_token_id), -100)
 
     # 80% -> [MASK]
     indices_replaced = (
