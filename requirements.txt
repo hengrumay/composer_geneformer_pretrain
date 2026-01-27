@@ -1,7 +1,5 @@
-mosaicml==0.23.5
-# NOTE: Do NOT install mosaicml[mlflow] on Databricks Serverless GPU.
-# It pulls/pins mlflow + databricks-sdk versions that can override the runtime and
-# cause MLflow "System metrics" to not populate reliably.
+# NOTE: On Databricks Serverless GPU, avoid installing `mosaicml` / `mosaicml[mlflow]` at runtime.
+# They can downgrade torch and/or override Databricks runtime packages, which breaks multi-node.
 mosaicml-streaming==0.8.0
 transformers==4.44.0
 datasets==2.21.0

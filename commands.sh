@@ -6,7 +6,9 @@ echo ">>> Repo dir: ${REPO_DIR}"
 echo ">>> Skipping Geneformer pip install (not required for training; avoids heavy deps like anndata/scanpy/ray)"
 
 echo ">>> Installing repo dependencies"
-python -m pip install -r requirements.txt
+# IMPORTANT: Do not let pip resolve dependencies here; it can downgrade torch and break the
+# Databricks runtime (especially multi-node torchrun). We only ensure our top-level pkgs exist.
+python -m pip install --no-deps -r requirements.txt
 
 # Create working directory (config can override)
 mkdir -p /pretrain/temp
