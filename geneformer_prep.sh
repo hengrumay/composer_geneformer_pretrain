@@ -5,7 +5,10 @@ set -euo pipefail
 # Note: the HF repo may use git-lfs for some artifacts, but the python package itself is sufficient
 # for imports used by this training script.
 python -m pip install --upgrade pip
-python -m pip install "git+https://huggingface.co/ctheodoris/Geneformer@b07f4b1e8893a0923a8fde223fe3b5a60b976d99"
+# Install Geneformer without pulling its (very large) transitive dependency set.
+# We pin the required deps in requirements.txt already; avoiding `--deps` prevents
+# breaking core Databricks runtime packages (mlflow/databricks-sdk/packaging).
+python -m pip install --no-deps "git+https://huggingface.co/ctheodoris/Geneformer@b07f4b1e8893a0923a8fde223fe3b5a60b976d99"
 
 # -----------------------------------------------------------------------------
 # Fallback (original approach) — uncomment if you hit issues with the HF pip install
