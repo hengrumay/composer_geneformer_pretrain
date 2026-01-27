@@ -12,6 +12,8 @@ environment:
   dependencies: requirements.yaml
   env_variables:
     NCCL_DEBUG: "WARN"
+    # Enable MLflow system metrics as early as possible (before any MLflow init done by the runner).
+    MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
     # Used by commands.sh to switch between single-node and multi-node torchrun.
     NNODES: "1"
 

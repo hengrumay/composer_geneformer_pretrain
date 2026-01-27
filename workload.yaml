@@ -14,6 +14,9 @@ environment:
   dependencies: requirements.yaml
   env_variables:
     NCCL_DEBUG: "WARN"
+    # Enable MLflow system metrics as early as possible (before any MLflow init done by the
+    # sgcli runner). Having this only in commands.sh can be too late.
+    MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
     # Used by commands.sh to switch between single-node and multi-node torchrun.
     # For A10: set NNODES == gpus (since A10 has 1 GPU per node).
     # For H100 single-node 8x: NNODES=1.
