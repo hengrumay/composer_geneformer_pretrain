@@ -57,6 +57,35 @@ python -m pip install -r requirements.txt -c /tmp/pip_constraints.txt --upgrade-
 echo ">>> Installing mosaicml-cli (provides mcli) with constraints"
 python -m pip install "mosaicml-cli>=0.5.25,<0.8" -c /tmp/pip_constraints.txt --upgrade-strategy only-if-needed
 
+echo ">>> Fix prompt-toolkit for runtime ipython (avoid pip check failure)"
+# mosaicml-cli may pull an older prompt-toolkit; the Serverless runtime ships ipython which
+# requires prompt_toolkit>=3.0.41. Bring it back into a compatible range.
+python -m pip install "prompt-toolkit>=3.0.41,<3.1.0" -c /tmp/pip_constraints.txt --upgrade-strategy only-if-needed
+
+echo ">>> Ensure mlflow distribution metadata exists (runtime may ship mlflow-skinny)"
+python - <<'PY'
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    import mlflow
+    runtime_mlflow = getattr(mlflow, "__version__", None)
+except Exception:
+    runtime_mlflow = None
+
+try:
+    version("mlflow")
+    has_dist = True
+except PackageNotFoundError:
+    has_dist = False
+
+print("mlflow module version:", runtime_mlflow)
+print("mlflow dist present:", has_dist)
+if runtime_mlflow and not has_dist:
+    import subprocess, sys
+    # Install just the dist metadata and entrypoints without touching dependencies.
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-deps", f"mlflow=={runtime_mlflow}"])
+PY
+
 echo ">>> Installing composer (no-deps to avoid torch/torchvision downgrades)"
 # Composer pins torch/torchvision versions that conflict with Serverless runtimes.
 # We rely on the runtime's preinstalled torch stack, and install composer without deps.
@@ -86,7 +115,20 @@ print("databricks_sdk:", v("databricks.sdk"))
 PY
 
 echo ">>> Dependency sanity check (pip check)"
-python -m pip check
+PIP_CHECK_OUT="$(python -m pip check || true)"
+if [ -n "${PIP_CHECK_OUT}" ]; then
+  echo "${PIP_CHECK_OUT}"
+fi
+
+# Filter out known/expected conflicts on Serverless:
+# - composer pins torch/torchvision upper bounds that may not yet include the runtime versions
+# - databricks-serverless-gpu/databricks-connect pins are controlled by the platform image
+PIP_CHECK_BAD="$(echo "${PIP_CHECK_OUT}" | grep -vE '^composer .* (torch|torchvision)<|^databricks-serverless-gpu |^databricks-connect ' || true)"
+if [ -n "${PIP_CHECK_BAD}" ]; then
+  echo "ERROR: Unexpected dependency conflicts detected:"
+  echo "${PIP_CHECK_BAD}"
+  exit 1
+fi
 
 if [ "${INSTALL_ONLY:-0}" = "1" ] || [ "${INSTALL_ONLY:-0}" = "true" ]; then
   echo ">>> INSTALL_ONLY=1 set; exiting after dependency install + checks"
