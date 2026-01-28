@@ -11,6 +11,7 @@ import pickle
 import random
 import subprocess
 import inspect
+import socket
 
 import numpy as np
 import pytz
@@ -197,6 +198,17 @@ def main(cfg: DictConfig):
     ):
         _maybe_init_torch_distributed()
 
+    # Log distributed + host info early (helps confirm multi-node vs single-node).
+    rank, world_size = _get_dist_rank_world_size()
+    host = socket.gethostname()
+    local_rank = os.getenv("LOCAL_RANK")
+    master_addr = os.getenv("MASTER_ADDR")
+    master_port = os.getenv("MASTER_PORT")
+    print(
+        f"[dist] host={host} rank={rank} world_size={world_size} "
+        f"LOCAL_RANK={local_rank} MASTER_ADDR={master_addr} MASTER_PORT={master_port}"
+    )
+
     seed_val = cfg.seed_val
     random.seed(seed_val)
     np.random.seed(seed_val)
@@ -278,9 +290,6 @@ def main(cfg: DictConfig):
     print(model)
 
     #Create streaming dataset
-    rank, world_size = _get_dist_rank_world_size()
-    if world_size > 1:
-        print(f"Distributed context detected: rank={rank} world_size={world_size}")
     shard_kwargs = _streaming_shard_kwargs(rank=rank, world_size=world_size, seed=seed_val)
     if shard_kwargs:
         print(f"StreamingDataset sharding kwargs: {shard_kwargs}")
