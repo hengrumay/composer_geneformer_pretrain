@@ -4,7 +4,6 @@ REPO_DIR="$(pwd)"
 echo ">>> Repo dir: ${REPO_DIR}"
 if command -v git >/dev/null 2>&1; then
   echo ">>> Repo git: $(git rev-parse --short HEAD 2>/dev/null || echo '<unknown>')"
-  git log -1 --oneline 2>/dev/null || true
 fi
 
 echo ">>> Skipping Geneformer pip install (not required for training; avoids heavy deps like anndata/scanpy/ray)"
@@ -31,21 +30,13 @@ PY
 python - <<'PY'
 from importlib.metadata import version, PackageNotFoundError
 
+# Critical: constrain only Databricks runtime packages that are frequently downgraded by pip.
+# Do NOT constrain torch/torchvision/torchaudio here: Serverless uses local build suffixes
+# (e.g. 2.7.1+cu126) which pip may try (and fail) to resolve from PyPI.
+names = ["mlflow", "databricks-sdk"]
+
 lines = []
-
-# Critical: do not let pip change these if already present in the Databricks runtime.
-# Pin torch to the runtime's *base* version so pip doesn't try to swap it.
-# (Using `===2.7.1+cu126` makes pip look for that exact build on PyPI, which doesn't exist.)
-try:
-    import torch
-    tv = getattr(torch, "__version__", None)
-    if tv:
-        base = tv.split("+", 1)[0]
-        lines.append(f"torch=={base}")
-except Exception:
-    pass
-
-for n in ("mlflow", "databricks-sdk"):
+for n in names:
     try:
         v = version(n)
     except PackageNotFoundError:
@@ -60,16 +51,20 @@ for ln in lines:
     print("  ", ln)
 PY
 
-echo ">>> Installing Composer (bypass torch constraint by using --no-deps)"
-# Composer declares torch<2.7.1 but the Serverless runtime has torch 2.7.1+cu126.
-# Installing composer with --no-deps avoids pip trying to resolve/downgrade torch.
-python -m pip install --no-deps "composer==0.32.1"
-
-echo ">>> Installing remaining requirements with deps (under constraints)"
+echo ">>> Installing repo requirements (with constraints)"
 python -m pip install -r requirements.txt -c /tmp/pip_constraints.txt --upgrade-strategy only-if-needed
+
+echo ">>> Installing mosaicml-cli (provides mcli) with constraints"
+python -m pip install "mosaicml-cli>=0.5.25,<0.8" -c /tmp/pip_constraints.txt --upgrade-strategy only-if-needed
+
+echo ">>> Installing composer (no-deps to avoid torch/torchvision downgrades)"
+# Composer pins torch/torchvision versions that conflict with Serverless runtimes.
+# We rely on the runtime's preinstalled torch stack, and install composer without deps.
+python -m pip install --no-deps "composer==0.32.1"
 
 echo ">>> Verifying composer import"
 python - <<'PY'
+import mcli
 import composer
 print("composer import OK, version:", getattr(composer, "__version__", "<unknown>"))
 PY
