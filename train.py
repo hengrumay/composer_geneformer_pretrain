@@ -50,6 +50,48 @@ def _get_serverless_gpu_distributed():
             return None
 
 
+def _maybe_init_torch_distributed():
+    """Optionally init torch.distributed if the launcher only sets env vars.
+
+    Some frameworks (and some example notebooks) explicitly call
+    `torch.distributed.init_process_group("nccl")` after `@distributed(...)` has
+    provisioned workers + set WORLD_SIZE/RANK/LOCAL_RANK.
+    """
+    try:
+        import torch.distributed as dist  # type: ignore
+    except Exception:
+        return
+
+    try:
+        world_size = int(os.getenv("WORLD_SIZE", "1") or "1")
+    except Exception:
+        world_size = 1
+
+    if world_size <= 1:
+        return
+
+    try:
+        local_rank = int(os.getenv("LOCAL_RANK", "0") or "0")
+    except Exception:
+        local_rank = 0
+
+    # Pin this process to its GPU.
+    try:
+        if torch.cuda.is_available():
+            torch.cuda.set_device(local_rank)
+    except Exception:
+        pass
+
+    # Initialize process group if needed.
+    try:
+        if dist.is_available() and not dist.is_initialized():
+            backend = os.getenv("SERVERLESS_GPU_DDP_BACKEND", "nccl")
+            dist.init_process_group(backend=backend)
+    except Exception as e:
+        # Don't hard-fail: Composer/Trainer may initialize the process group itself.
+        print(f"WARNING: torch.distributed init_process_group failed/skipped: {e}")
+
+
 def _as_long_tensor(x):
     """Ensure token ids are int64 tensors (required by HF MLM collator)."""
     if isinstance(x, torch.Tensor):
@@ -107,6 +149,13 @@ def _mlm_collate_fn(
 def main(cfg: DictConfig):
     #### Env variables
     #os.environ["NCCL_DEBUG"] = "INFO"
+
+    # Optional: when running under Databricks Serverless GPU @distributed launcher, initialize
+    # torch.distributed if it isn't already initialized (mirrors common examples).
+    if _env_truthy("USE_SERVERLESS_GPU_DISTRIBUTED", "0") and _env_truthy(
+        "SERVERLESS_GPU_MANUAL_INIT_PROCESS_GROUP", "1"
+    ):
+        _maybe_init_torch_distributed()
 
     seed_val = cfg.seed_val
     random.seed(seed_val)
