@@ -8,6 +8,22 @@ echo ">>> Skipping Geneformer pip install (not required for training; avoids hea
 echo ">>> Installing repo dependencies"
 # Install with deps, but constrain critical Databricks runtime packages to their preinstalled versions.
 # This avoids the "missing module" whack-a-mole while preventing torch/mlflow/databricks package changes.
+echo ">>> Runtime versions (pre-install)"
+python - <<'PY'
+import sys
+def v(name):
+    try:
+        mod = __import__(name)
+        return getattr(mod, "__version__", "<unknown>")
+    except Exception as e:
+        return f"<not importable: {e}>"
+
+print("python:", sys.version.split()[0])
+print("torch:", v("torch"))
+print("mlflow:", v("mlflow"))
+print("databricks_sdk:", v("databricks.sdk"))
+PY
+
 python - <<'PY'
 from importlib.metadata import version, PackageNotFoundError
 
@@ -44,6 +60,22 @@ echo ">>> Verifying composer import"
 python - <<'PY'
 import composer
 print("composer import OK, version:", getattr(composer, "__version__", "<unknown>"))
+PY
+
+echo ">>> Runtime versions (post-install)"
+python - <<'PY'
+import sys
+def v(name):
+    try:
+        mod = __import__(name)
+        return getattr(mod, "__version__", "<unknown>")
+    except Exception as e:
+        return f"<not importable: {e}>"
+
+print("python:", sys.version.split()[0])
+print("torch:", v("torch"))
+print("mlflow:", v("mlflow"))
+print("databricks_sdk:", v("databricks.sdk"))
 PY
 
 # Create working directory (config can override)
