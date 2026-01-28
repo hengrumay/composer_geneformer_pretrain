@@ -54,20 +54,6 @@ PY
 echo ">>> Installing repo requirements (with constraints)"
 python -m pip install -r requirements.txt -c /tmp/pip_constraints.txt --upgrade-strategy only-if-needed
 
-echo ">>> Installing mosaicml-cli (provides mcli) with constraints"
-python -m pip install "mosaicml-cli>=0.5.25,<0.8" -c /tmp/pip_constraints.txt --upgrade-strategy only-if-needed
-
-echo ">>> Fix prompt-toolkit for runtime ipython (avoid pip check failure)"
-# mosaicml-cli may pull an older prompt-toolkit; the Serverless runtime ships ipython which
-# requires prompt_toolkit>=3.0.41. Bring it back into a compatible range.
-python -m pip install "prompt-toolkit>=3.0.41,<3.1.0" -c /tmp/pip_constraints.txt --upgrade-strategy only-if-needed
-
-echo ">>> Fix questionary vs prompt-toolkit conflict"
-# mosaicml-cli may pin questionary==2.0.1, which requires prompt_toolkit<=3.0.36.
-# The Serverless runtime's ipython requires prompt_toolkit>=3.0.41, so we upgrade questionary
-# to a version compatible with newer prompt-toolkit.
-python -m pip install "questionary>=2.1.0,<3.0.0" -c /tmp/pip_constraints.txt --upgrade-strategy only-if-needed
-
 echo ">>> Installing composer (no-deps to avoid torch/torchvision downgrades)"
 # Composer pins torch/torchvision versions that conflict with Serverless runtimes.
 # We rely on the runtime's preinstalled torch stack, and install composer without deps.
@@ -75,7 +61,6 @@ python -m pip install --no-deps "composer==0.32.1"
 
 echo ">>> Verifying composer import"
 python - <<'PY'
-import mcli
 import composer
 print("composer import OK, version:", getattr(composer, "__version__", "<unknown>"))
 PY
