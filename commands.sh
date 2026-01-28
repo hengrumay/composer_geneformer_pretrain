@@ -14,93 +14,60 @@ python -m pip install --no-deps -r requirements.txt
 # Some older MosaicML releases may not have py312 wheels; prefer `composer` if available.
 echo ">>> Ensuring composer is importable (py312-safe)"
 set +e
-python - <<'PY'
-import sys
-try:
-    import composer  # noqa: F401
-    print("composer: already importable")
-    sys.exit(0)
-except Exception as e:
-    print("composer import failed:", repr(e))
-    sys.exit(1)
-PY
-COMPOSER_OK=$?
-set -e
-if [ "${COMPOSER_OK}" != "0" ]; then
-  echo ">>> Installing Composer (attempt 1): pip install --no-deps composer"
+# Step 1: ensure the composer wheel itself is present.
+python -c "import composer" >/dev/null 2>&1
+if [ "$?" != "0" ]; then
+  echo ">>> Installing Composer base package: pip install --no-deps composer"
   python -m pip install --no-deps composer || true
-  set +e
-  python - <<'PY'
-import sys
-try:
-    import composer  # noqa: F401
-    print("composer: import OK after installing 'composer'")
-    sys.exit(0)
-except Exception as e:
-    print("composer still not importable:", repr(e))
-    sys.exit(1)
-PY
-  COMPOSER_OK=$?
-  set -e
-
-  # If composer installed but is missing its CLI runtime module ("mcli"), install mosaicml-cli.
-  if [ "${COMPOSER_OK}" != "0" ]; then
-    echo ">>> Installing missing composer runtime dep (attempt 1a): pip install --no-deps mosaicml-cli"
-    python -m pip install --no-deps mosaicml-cli || true
-    set +e
-    python - <<'PY'
-import sys
-try:
-    import composer  # noqa: F401
-    print("composer: import OK after installing 'mosaicml-cli'")
-    sys.exit(0)
-except Exception as e:
-    print("composer still not importable:", repr(e))
-    sys.exit(1)
-PY
-    COMPOSER_OK=$?
-    set -e
-  fi
 fi
-if [ "${COMPOSER_OK}" != "0" ]; then
-  echo ">>> Installing Composer (attempt 2): pip install --no-deps mosaicml"
-  python -m pip install --no-deps mosaicml || true
-  set +e
-  python - <<'PY'
-import sys
-try:
-    import composer  # noqa: F401
-    print("composer: import OK after installing 'mosaicml'")
-    sys.exit(0)
-except Exception as e:
-    print("composer still not importable:", repr(e))
-    sys.exit(1)
-PY
-  COMPOSER_OK=$?
-  set -e
 
-  # If mosaicml installed but is missing its CLI runtime module ("mcli"), install mosaicml-cli.
-  if [ "${COMPOSER_OK}" != "0" ]; then
-    echo ">>> Installing missing mosaicml runtime dep (attempt 2a): pip install --no-deps mosaicml-cli"
-    python -m pip install --no-deps mosaicml-cli || true
-    set +e
-    python - <<'PY'
-import sys
+# Step 2: iteratively install any missing runtime deps without enabling pip dependency resolution.
+# This keeps torch + Databricks runtime packages stable.
+MAX_FIXES="${MAX_COMPOSER_DEP_FIXES:-12}"
+for i in $(seq 1 "${MAX_FIXES}"); do
+  OUT="$(python - <<'PY'
+import sys, re
 try:
     import composer  # noqa: F401
-    print("composer: import OK after installing 'mosaicml-cli'")
+    print("OK")
     sys.exit(0)
 except Exception as e:
-    print("composer still not importable:", repr(e))
+    msg = repr(e)
+    print("ERR", msg)
+    m = re.search(r"No module named '([^']+)'", msg)
+    if m:
+        print("MISSING", m.group(1))
     sys.exit(1)
 PY
-    COMPOSER_OK=$?
-    set -e
+  )"
+
+  if echo "${OUT}" | head -n 1 | grep -q '^OK'; then
+    echo "composer: import OK"
+    COMPOSER_OK=0
+    break
   fi
-fi
-if [ "${COMPOSER_OK}" != "0" ]; then
-  echo "ERROR: 'composer' module is still not importable after install attempts."
-  echo "Tried: pip install --no-deps composer  (then)  pip install --no-deps mosaicml  (then)  pip install --no-deps mosaicml-cli"
+
+  missing="$(echo "${OUT}" | awk '$1=="MISSING"{print $2; exit}')"
+  echo ">>> composer import not ready: ${OUT}"
+  if [ -z "${missing}" ]; then
+    echo "ERROR: composer import failed but missing module could not be parsed."
+    COMPOSER_OK=1
+    break
+  fi
+
+  # Special case: composer/mosaicml expects `mcli` module provided by `mosaicml-cli`.
+  if [ "${missing}" = "mcli" ]; then
+    pkg="mosaicml-cli"
+  else
+    pkg="${missing}"
+  fi
+  echo ">>> Installing missing composer runtime dep (${i}/${MAX_FIXES}): pip install --no-deps ${pkg}"
+  python -m pip install --no-deps "${pkg}" || true
+done
+
+set -e
+if [ "${COMPOSER_OK:-1}" != "0" ]; then
+  echo "ERROR: 'composer' module is still not importable after dependency fix attempts."
   exit 12
 fi
 
