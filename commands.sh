@@ -68,6 +68,12 @@ PY
 echo ">>> pip check (non-fatal on Databricks)"
 python -m pip check || true
 
+# Uncomment to exit after deps install + pip check (install-only preflight)
+# if [ "${INSTALL_ONLY:-0}" = "1" ] || [ "${INSTALL_ONLY:-0}" = "true" ]; then
+#   echo ">>> INSTALL_ONLY=1 set; exiting after dependency install + checks"
+#   exit 0
+# fi
+
 # Create working directory (config can override)
 mkdir -p /pretrain/temp
 
