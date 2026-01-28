@@ -10,6 +10,47 @@ echo ">>> Installing repo dependencies"
 # Databricks runtime (especially multi-node torchrun). We only ensure our top-level pkgs exist.
 python -m pip install --no-deps -r requirements.txt
 
+# Ensure Composer is available on Python 3.12.
+# Some older MosaicML releases may not have py312 wheels; prefer `composer` if available.
+echo ">>> Ensuring composer is importable (py312-safe)"
+python - <<'PY'
+import importlib, sys
+try:
+    import composer  # noqa: F401
+    print("composer: already importable")
+except Exception as e:
+    print("composer import failed:", repr(e))
+    sys.exit(10)
+PY
+COMPOSER_OK=$?
+if [ "${COMPOSER_OK}" != "0" ]; then
+  echo ">>> Installing Composer (attempt 1): pip install --no-deps composer"
+  python -m pip install --no-deps composer || true
+  python - <<'PY'
+import sys
+try:
+    import composer  # noqa: F401
+    print("composer: import OK after installing 'composer'")
+except Exception as e:
+    print("composer still not importable:", repr(e))
+    sys.exit(11)
+PY
+  COMPOSER_OK=$?
+fi
+if [ "${COMPOSER_OK}" != "0" ]; then
+  echo ">>> Installing Composer (attempt 2): pip install --no-deps mosaicml"
+  python -m pip install --no-deps mosaicml || true
+  python - <<'PY'
+import sys
+try:
+    import composer  # noqa: F401
+    print("composer: import OK after installing 'mosaicml'")
+except Exception as e:
+    print("composer still not importable:", repr(e))
+    sys.exit(12)
+PY
+fi
+
 # Create working directory (config can override)
 mkdir -p /pretrain/temp
 
