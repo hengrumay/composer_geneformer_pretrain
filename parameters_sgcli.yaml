@@ -58,7 +58,7 @@ loggers:
 # -----------------------------------------------------------------------------
 distributed:
   enabled: true
-  mode: torchrun
+  mode: serverless_gpu
   torchrun:
     # Optional: override GPU processes per node. Use "auto" to let commands.sh detect.
     # For A10 multi-node, this should be 1 GPU process per node.
@@ -69,7 +69,7 @@ distributed:
     gpu_type: a10
     # Set true to provision remote GPUs (multi-node) via serverless orchestration.
     # For single-host 8xH100, you likely want false.
-    remote: false
+    remote: true
     # Some examples manually init torch.distributed after the launcher sets env vars.
     manual_init_process_group: true
     ddp_backend: nccl

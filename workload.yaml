@@ -20,11 +20,13 @@ environment:
     # Used by commands.sh to switch between single-node and multi-node torchrun.
     # For A10: set NNODES == gpus (since A10 has 1 GPU per node).
     # For H100 single-node 8x: NNODES=1.
-    NNODES: "8"
+    # For Serverless GPU `@distributed(remote=True)`, keep this job single-worker;
+    # the launcher provisions the distributed workers.
+    NNODES: "1"
 
 compute:
-  # Multi-node A10 (1 GPU per node => gpus == number of nodes)
-  gpus: 8
+  # Single-worker job; `serverless_gpu` launcher provisions distributed A10s.
+  gpus: 1
   gpu_type: a10
 
 # --- compute presets (toggle by commenting/uncommenting the whole block) ---

@@ -180,6 +180,8 @@ except Exception as e:
     print("connect FAIL:", e)
     print("NOTE: If connect fails, multi-node torchrun rendezvous will hang/fail on Serverless.")
     print("      Recommended: use distributed.mode=serverless_gpu (Databricks-managed launcher) instead of torchrun.")
+    # Fail fast so we don't burn time "hanging" in torchrun rendezvous.
+    raise SystemExit(42)
 finally:
     try:
         s.close()
