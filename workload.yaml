@@ -26,9 +26,9 @@ environment:
     NNODES: "1"
 
 compute:
-  # Default: single-node A10 (1 GPU per node) for faster scheduling
-  gpus: 1
-  gpu_type: a10
+  # Single-host H100 (8 GPUs per node)
+  gpus: 8
+  gpu_type: h100_80gb
 
 # --- compute presets (toggle by commenting/uncommenting the whole block) ---
 # compute:
