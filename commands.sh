@@ -30,8 +30,6 @@ from importlib.metadata import version, PackageNotFoundError
 names = [
     # Critical: do not let pip change these if already present in the Databricks runtime.
     "torch",
-    "torchvision",
-    "torchaudio",
     "mlflow",
     "databricks-sdk",
 ]
