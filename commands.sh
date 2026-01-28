@@ -13,42 +13,57 @@ python -m pip install --no-deps -r requirements.txt
 # Ensure Composer is available on Python 3.12.
 # Some older MosaicML releases may not have py312 wheels; prefer `composer` if available.
 echo ">>> Ensuring composer is importable (py312-safe)"
+set +e
 python - <<'PY'
-import importlib, sys
+import sys
 try:
     import composer  # noqa: F401
     print("composer: already importable")
+    sys.exit(0)
 except Exception as e:
     print("composer import failed:", repr(e))
-    sys.exit(10)
+    sys.exit(1)
 PY
 COMPOSER_OK=$?
+set -e
 if [ "${COMPOSER_OK}" != "0" ]; then
   echo ">>> Installing Composer (attempt 1): pip install --no-deps composer"
   python -m pip install --no-deps composer || true
+  set +e
   python - <<'PY'
 import sys
 try:
     import composer  # noqa: F401
     print("composer: import OK after installing 'composer'")
+    sys.exit(0)
 except Exception as e:
     print("composer still not importable:", repr(e))
-    sys.exit(11)
+    sys.exit(1)
 PY
   COMPOSER_OK=$?
+  set -e
 fi
 if [ "${COMPOSER_OK}" != "0" ]; then
   echo ">>> Installing Composer (attempt 2): pip install --no-deps mosaicml"
   python -m pip install --no-deps mosaicml || true
+  set +e
   python - <<'PY'
 import sys
 try:
     import composer  # noqa: F401
     print("composer: import OK after installing 'mosaicml'")
+    sys.exit(0)
 except Exception as e:
     print("composer still not importable:", repr(e))
-    sys.exit(12)
+    sys.exit(1)
 PY
+  COMPOSER_OK=$?
+  set -e
+fi
+if [ "${COMPOSER_OK}" != "0" ]; then
+  echo "ERROR: 'composer' module is still not importable after install attempts."
+  echo "Tried: pip install --no-deps composer  (then)  pip install --no-deps mosaicml"
+  exit 12
 fi
 
 # Create working directory (config can override)
