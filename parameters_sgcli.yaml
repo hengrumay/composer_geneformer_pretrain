@@ -74,7 +74,7 @@ console_log_interval: 1ba
 autoresume: false
 
 # Save checkpoints somewhere that doesn't require AWS creds
-save_interval: 1ep
+save_interval: 1ba # save every batch so it’s obvious | #1ep
 save_num_checkpoints_to_keep: 1
 save_overwrite: true
 # Composer's UC object store expects Unity Catalog Volume paths to start with "Volumes"
