@@ -56,12 +56,16 @@ if [ "${NNODES}" != "1" ]; then
   echo ">>> Env (filtered):"
   env | egrep '^(NNODES|NODE_RANK|MASTER_ADDR|MASTER_PORT|RANK|WORLD_SIZE|LOCAL_RANK)=' || true
 
+  RDZV_ID="${RDZV_ID:-geneformer-sgcli-mmt-test}"
+  echo ">>> RDZV_ID=${RDZV_ID}"
+
   torchrun \
     --nnodes="${NNODES}" \
     --nproc_per_node="${NPROC_PER_NODE}" \
     --node_rank="${NODE_RANK}" \
     --rdzv_backend=c10d \
-    --rdzv_conf timeout=900 \
+    --rdzv_id="${RDZV_ID}" \
+    --rdzv_conf join_timeout=1800,timeout=1800,read_timeout=1800 \
     --rdzv_endpoint="${MASTER_ADDR}:${MASTER_PORT}" \
     train.py parameters_sgcli.yaml
 else

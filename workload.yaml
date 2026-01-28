@@ -21,6 +21,8 @@ environment:
     # For A10: set NNODES == gpus (since A10 has 1 GPU per node).
     # For H100 single-node 8x: NNODES=1.
     NNODES: "8"
+    # Use a stable rendezvous id shared by all nodes in this run.
+    RDZV_ID: "geneformer-sgcli-mmt-test"
 
 compute:
   # Default: single-node A10 (1 GPU per node) for faster scheduling
