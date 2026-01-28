@@ -77,6 +77,13 @@ python -m pip check || true
 # Create working directory (config can override)
 mkdir -p /pretrain/temp
 
+# Create checkpoint directory if configured (best-effort).
+CKPT_DIR="/Volumes/main/srijit_nair/geneformer/tmp/geneformer_sgcli_mmt_test/checkpoints"
+if [ -n "${CKPT_DIR}" ]; then
+  echo ">>> Ensuring checkpoint dir exists: ${CKPT_DIR}"
+  mkdir -p "${CKPT_DIR}" || true
+fi
+
 echo ">>> Starting training"
 export MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING="${MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING:-true}"
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"

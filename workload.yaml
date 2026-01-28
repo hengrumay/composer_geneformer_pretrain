@@ -13,6 +13,8 @@ environment:
   env_variables:
     NCCL_DEBUG: "WARN"
     MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
+    # If true, train.py will upload any saved checkpoints as MLflow artifacts (rank 0 only).
+    LOG_CHECKPOINTS_TO_MLFLOW: "true"
 
     # Multi-worker torchrun mode (like the helloworld example):
     # - scg-cli/serverless will inject MASTER_ADDR, MASTER_PORT, NODE_RANK.

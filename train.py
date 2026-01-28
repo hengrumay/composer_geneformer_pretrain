@@ -240,6 +240,24 @@ def main(cfg: DictConfig):
         data_local = False
 
     # output directories
+    save_folder = cfg.get("save_folder", None)
+    save_interval = cfg.get("save_interval", None)
+    save_overwrite = cfg.get("save_overwrite", False)
+    save_num_checkpoints_to_keep = cfg.get("save_num_checkpoints_to_keep", 1)
+    if save_folder:
+        if not os.path.isabs(save_folder):
+            print(f"[ckpt] WARNING: save_folder is not absolute: {save_folder}")
+        if rank == 0:
+            try:
+                os.makedirs(save_folder, exist_ok=True)
+            except Exception as e:
+                print(f"[ckpt] WARNING: failed to create save_folder {save_folder}: {e}")
+        if rank == 0:
+            print(
+                "[ckpt] config "
+                f"save_folder={save_folder} save_interval={save_interval} "
+                f"save_overwrite={save_overwrite} save_num_checkpoints_to_keep={save_num_checkpoints_to_keep}"
+            )
 
     #############################################
     ### Start processing
@@ -418,6 +436,19 @@ def main(cfg: DictConfig):
 
     print(trainer.state.train_metrics)
     print(trainer.state.eval_metrics)
+
+    # Optionally log checkpoints to MLflow (rank 0 only).
+    if _env_truthy("LOG_CHECKPOINTS_TO_MLFLOW", "0") and save_folder and rank == 0:
+        try:
+            import mlflow
+
+            if os.path.isdir(save_folder):
+                mlflow.log_artifacts(save_folder, artifact_path="checkpoints")
+                print(f"[ckpt] Logged checkpoints to MLflow from {save_folder}")
+            else:
+                print(f"[ckpt] WARNING: save_folder does not exist: {save_folder}")
+        except Exception as e:
+            print(f"[ckpt] WARNING: failed to log checkpoints to MLflow: {e}")
 
     # Cleanly tear down the process group to avoid NCCL resource warnings.
     try:
