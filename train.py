@@ -191,12 +191,9 @@ def main(cfg: DictConfig):
     #### Env variables
     #os.environ["NCCL_DEBUG"] = "INFO"
 
-    # Optional: when running under Databricks Serverless GPU @distributed launcher, initialize
-    # torch.distributed if it isn't already initialized (mirrors common examples).
-    if _env_truthy("USE_SERVERLESS_GPU_DISTRIBUTED", "0") and _env_truthy(
-        "SERVERLESS_GPU_MANUAL_INIT_PROCESS_GROUP", "1"
-    ):
-        _maybe_init_torch_distributed()
+    # Initialize torch.distributed when env vars indicate multi-process (torchrun or serverless).
+    # This pins the local GPU via LOCAL_RANK and sets up the process group if not already done.
+    _maybe_init_torch_distributed()
 
     # Log distributed + host info early (helps confirm multi-node vs single-node).
     rank, world_size = _get_dist_rank_world_size()
