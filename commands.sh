@@ -6,22 +6,9 @@ echo ">>> Repo dir: ${REPO_DIR}"
 echo ">>> Skipping Geneformer pip install (not required for training; avoids heavy deps like anndata/scanpy/ray)"
 
 echo ">>> Installing repo dependencies"
-# IMPORTANT: Do not let pip resolve dependencies here; it can downgrade torch and break the
-# Databricks runtime (especially multi-node torchrun). We only ensure our top-level pkgs exist.
-python -m pip install --no-deps -r requirements.txt
-
-# Ensure Composer is available on Python 3.12.
-# Some older MosaicML releases may not have py312 wheels; prefer `composer` if available.
-echo ">>> Ensuring composer is importable (py312-safe)"
-
-# Default: install Composer WITH deps, but pin runtime packages to avoid torch/mlflow/databricks changes.
-# Set COMPOSER_INSTALL_MODE=no_deps to use the old "auto-install missing modules" approach.
-COMPOSER_INSTALL_MODE="${COMPOSER_INSTALL_MODE:-with_deps}"
-
-if [ "${COMPOSER_INSTALL_MODE}" = "with_deps" ]; then
-  echo ">>> Composer install mode: with_deps (with constraints to protect runtime packages)"
-
-  python - <<'PY'
+# Install with deps, but constrain critical Databricks runtime packages to their preinstalled versions.
+# This avoids the "missing module" whack-a-mole while preventing torch/mlflow/databricks package changes.
+python - <<'PY'
 from importlib.metadata import version, PackageNotFoundError
 
 names = [
@@ -51,74 +38,13 @@ for ln in lines:
     print("  ", ln)
 PY
 
-  # Install composer with deps (no --no-deps), but constrain critical runtime packages above.
-  # Pin to a known working py312 build observed in logs.
-  python -m pip install "composer==0.32.1" -c /tmp/pip_constraints.txt
+python -m pip install -r requirements.txt -c /tmp/pip_constraints.txt
 
-  python - <<'PY'
+echo ">>> Verifying composer import"
+python - <<'PY'
 import composer
 print("composer import OK, version:", getattr(composer, "__version__", "<unknown>"))
 PY
-else
-  echo ">>> Composer install mode: no_deps (best-effort auto-install missing modules)"
-  set +e
-  # Step 1: ensure the composer wheel itself is present.
-  python -c "import composer" >/dev/null 2>&1
-  if [ "$?" != "0" ]; then
-    echo ">>> Installing Composer base package: pip install --no-deps composer"
-    python -m pip install --no-deps composer || true
-  fi
-
-  # Step 2: iteratively install any missing runtime deps without enabling pip dependency resolution.
-  # This keeps torch + Databricks runtime packages stable.
-  MAX_FIXES="${MAX_COMPOSER_DEP_FIXES:-12}"
-  for i in $(seq 1 "${MAX_FIXES}"); do
-    OUT="$(python - <<'PY'
-import sys, re
-try:
-    import composer  # noqa: F401
-    print("OK")
-    sys.exit(0)
-except Exception as e:
-    msg = repr(e)
-    print("ERR", msg)
-    m = re.search(r"No module named '([^']+)'", msg)
-    if m:
-        print("MISSING", m.group(1))
-    sys.exit(1)
-PY
-    )"
-
-    if echo "${OUT}" | head -n 1 | grep -q '^OK'; then
-      echo "composer: import OK"
-      COMPOSER_OK=0
-      break
-    fi
-
-    missing="$(echo "${OUT}" | awk '$1=="MISSING"{print $2; exit}')"
-    echo ">>> composer import not ready: ${OUT}"
-    if [ -z "${missing}" ]; then
-      echo "ERROR: composer import failed but missing module could not be parsed."
-      COMPOSER_OK=1
-      break
-    fi
-
-    # Special case: composer/mosaicml expects `mcli` module provided by `mosaicml-cli`.
-    if [ "${missing}" = "mcli" ]; then
-      pkg="mosaicml-cli"
-    else
-      pkg="${missing}"
-    fi
-    echo ">>> Installing missing composer runtime dep (${i}/${MAX_FIXES}): pip install --no-deps ${pkg}"
-    python -m pip install --no-deps "${pkg}" || true
-  done
-
-  set -e
-  if [ "${COMPOSER_OK:-1}" != "0" ]; then
-    echo "ERROR: 'composer' module is still not importable after dependency fix attempts."
-    exit 12
-  fi
-fi
 
 # Create working directory (config can override)
 mkdir -p /pretrain/temp
