@@ -152,6 +152,41 @@ if [ "${NNODES}" != "1" ]; then
     exit 2
   fi
 
+  # Serverless note: multi-host torchrun can be blocked by serverless networking policies.
+  # We probe basic reachability to fail fast (instead of "hanging" at rendezvous).
+  echo ">>> Rendezvous probe: DNS + TCP connect to MASTER_ADDR:MASTER_PORT"
+  python - <<'PY'
+import os, socket, sys
+host = os.environ.get("MASTER_ADDR")
+port = int(os.environ.get("MASTER_PORT", "0") or "0")
+print("MASTER_ADDR:", host)
+print("MASTER_PORT:", port)
+if not host or not port:
+    print("probe: missing MASTER_ADDR/MASTER_PORT; skipping")
+    raise SystemExit(0)
+try:
+    ip = socket.gethostbyname(host)
+    print("resolved:", host, "->", ip)
+except Exception as e:
+    print("resolve FAIL:", e)
+    raise SystemExit(0)
+
+s = socket.socket()
+s.settimeout(3)
+try:
+    s.connect((ip, port))
+    print("connect OK")
+except Exception as e:
+    print("connect FAIL:", e)
+    print("NOTE: If connect fails, multi-node torchrun rendezvous will hang/fail on Serverless.")
+    print("      Recommended: use distributed.mode=serverless_gpu (Databricks-managed launcher) instead of torchrun.")
+finally:
+    try:
+        s.close()
+    except Exception:
+        pass
+PY
+
   # Resolve MASTER_ADDR to an IP if possible (helps avoid per-node DNS quirks).
   if command -v getent >/dev/null 2>&1; then
     MASTER_ADDR_IP="$(getent hosts "${MASTER_ADDR}" | awk '{print $1}' | head -n 1 || true)"
