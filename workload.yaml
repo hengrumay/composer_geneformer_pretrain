@@ -20,13 +20,14 @@ environment:
     # Used by commands.sh to switch between single-node and multi-node torchrun.
     # For A10: set NNODES == gpus (since A10 has 1 GPU per node).
     # For H100 single-node 8x: NNODES=1.
-    NNODES: "8"
-    # Use a stable rendezvous id shared by all nodes in this run.
-    RDZV_ID: "geneformer-sgcli-mmt-test"
+    #
+    # NOTE: Databricks *Serverless* generally does not support true multi-host torchrun (--nnodes>1).
+    # Keep NNODES=1 here; for multi-host distributed training, use a classic multi-node GPU cluster.
+    NNODES: "1"
 
 compute:
   # Default: single-node A10 (1 GPU per node) for faster scheduling
-  gpus: 8
+  gpus: 1
   gpu_type: a10
 
 # --- compute presets (toggle by commenting/uncommenting the whole block) ---
