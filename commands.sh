@@ -2,6 +2,10 @@ set -euo pipefail
 
 REPO_DIR="$(pwd)"
 echo ">>> Repo dir: ${REPO_DIR}"
+if command -v git >/dev/null 2>&1; then
+  echo ">>> Repo git: $(git rev-parse --short HEAD 2>/dev/null || echo '<unknown>')"
+  git log -1 --oneline 2>/dev/null || true
+fi
 
 echo ">>> Skipping Geneformer pip install (not required for training; avoids heavy deps like anndata/scanpy/ray)"
 
