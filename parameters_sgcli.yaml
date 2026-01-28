@@ -44,6 +44,35 @@ loggers:
     tracking_uri: databricks
     experiment_name: mlflow_experiments/geneformer_pretraining
 
+# -----------------------------------------------------------------------------
+# Distributed training control (toggle + parameters)
+#
+# - mode: "none" | "torchrun" | "serverless_gpu"
+# - enabled: master toggle (if false, mode is ignored and defaults apply)
+#
+# Notes:
+# - "torchrun" mode uses the existing `commands.sh` logic (single-node --standalone
+#   when multiple GPUs are present; multi-node torchrun when NNODES>1).
+# - "serverless_gpu" mode uses Databricks Serverless GPU `@distributed` launcher
+#   (from `serverless_gpu.launcher import distributed`) and must be NNODES=1.
+# -----------------------------------------------------------------------------
+distributed:
+  enabled: false
+  mode: torchrun
+  torchrun:
+    # Optional: override GPU processes per node. Use "auto" to let commands.sh detect.
+    nproc_per_node: auto
+  serverless_gpu:
+    # Serverless GPU launcher parameters.
+    gpus: 8
+    gpu_type: h100_80gb
+    # Set true to provision remote GPUs (multi-node) via serverless orchestration.
+    # For single-host 8xH100, you likely want false.
+    remote: false
+    # Some examples manually init torch.distributed after the launcher sets env vars.
+    manual_init_process_group: true
+    ddp_backend: nccl
+
 device: gpu
 seed_val: 42
 run_name: geneformer_sgcli_mmt_test
