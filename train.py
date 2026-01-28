@@ -191,8 +191,13 @@ def main(cfg: DictConfig):
     #### Env variables
     #os.environ["NCCL_DEBUG"] = "INFO"
 
-    # Initialize torch.distributed when env vars indicate multi-process (torchrun or serverless).
-    # This pins the local GPU via LOCAL_RANK and sets up the process group if not already done.
+    # Pin CUDA device early for torchrun workers (LOCAL_RANK set by torchrun).
+    if torch.cuda.is_available():
+        local_rank = int(os.environ.get("LOCAL_RANK", "0") or "0")
+        torch.cuda.set_device(local_rank)
+        print(f"[cuda] set_device({local_rank})")
+
+    # Initialize torch.distributed when env vars indicate multi-process.
     _maybe_init_torch_distributed()
 
     # Log distributed + host info early (helps confirm multi-node vs single-node).
@@ -343,23 +348,29 @@ def main(cfg: DictConfig):
             mlm_probability=mlm_probability,
         )
 
-    train_dataloader = DataLoader(streaming_dataset_train,
-                            shuffle=False, 
-                            drop_last=False, 
-                            collate_fn=collate_fn,
-                            batch_size=train_batch_size,
-                            num_workers = 32,
-                            pin_memory = True,
-                            persistent_workers = True)
+    # Keep DataLoader worker count modest to avoid oversubscribing across ranks.
+    num_workers = int(os.environ.get("DATALOADER_WORKERS", "4"))
+    train_dataloader = DataLoader(
+        streaming_dataset_train,
+        shuffle=False,
+        drop_last=False,
+        collate_fn=collate_fn,
+        batch_size=train_batch_size,
+        num_workers=num_workers,
+        pin_memory=True,
+        persistent_workers=(num_workers > 0),
+    )
 
-    eval_dataloader = DataLoader(streaming_dataset_eval,
-                            shuffle=False, 
-                            drop_last=False, 
-                            collate_fn=collate_fn,
-                            batch_size=eval_batch_size,
-                            num_workers = 32,
-                            pin_memory = True,
-                            persistent_workers = True)
+    eval_dataloader = DataLoader(
+        streaming_dataset_eval,
+        shuffle=False,
+        drop_last=False,
+        collate_fn=collate_fn,
+        batch_size=eval_batch_size,
+        num_workers=num_workers,
+        pin_memory=True,
+        persistent_workers=(num_workers > 0),
+    )
 
     ##############################
     #Following code is to introduce an error after 7 epochs , 
@@ -407,6 +418,14 @@ def main(cfg: DictConfig):
 
     print(trainer.state.train_metrics)
     print(trainer.state.eval_metrics)
+
+    # Cleanly tear down the process group to avoid NCCL resource warnings.
+    try:
+        import torch.distributed as dist  # type: ignore
+        if dist.is_available() and dist.is_initialized():
+            dist.destroy_process_group()
+    except Exception:
+        pass
 
 
 

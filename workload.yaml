@@ -18,6 +18,14 @@ environment:
     # - scg-cli/serverless will inject MASTER_ADDR, MASTER_PORT, NODE_RANK.
     # - commands.sh uses these and runs torchrun --nnodes=$NNODES --nproc_per_node=1 ...
     NNODES: "8"
+    MASTER_PORT: "29400"
+
+    # Keep DataLoader workers modest per rank (read in train.py)
+    DATALOADER_WORKERS: "4"
+
+    # Avoid OFI plugin warnings; force NCCL sockets
+    NCCL_NET: "Socket"
+    NCCL_IB_DISABLE: "1"
 
     # Strongly recommended to avoid DataLoader worker explosion:
     # you currently have num_workers=32 in train.py; with 8 ranks that would be 256 workers.
