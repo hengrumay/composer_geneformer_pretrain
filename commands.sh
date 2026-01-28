@@ -27,15 +27,19 @@ PY
 python - <<'PY'
 from importlib.metadata import version, PackageNotFoundError
 
-names = [
-    # Critical: do not let pip change these if already present in the Databricks runtime.
-    "torch",
-    "mlflow",
-    "databricks-sdk",
-]
-
 lines = []
-for n in names:
+
+# Critical: do not let pip change these if already present in the Databricks runtime.
+# Use torch.__version__ with local build suffix (e.g. +cu126) to avoid mismatches like 2.7.1 vs 2.7.1+cu126.
+try:
+    import torch
+    tv = getattr(torch, "__version__", None)
+    if tv:
+        lines.append(f"torch==={tv}")
+except Exception:
+    pass
+
+for n in ("mlflow", "databricks-sdk"):
     try:
         v = version(n)
     except PackageNotFoundError:
@@ -50,7 +54,7 @@ for ln in lines:
     print("  ", ln)
 PY
 
-python -m pip install -r requirements.txt -c /tmp/pip_constraints.txt
+python -m pip install -r requirements.txt -c /tmp/pip_constraints.txt --upgrade-strategy only-if-needed
 
 echo ">>> Verifying composer import"
 python - <<'PY'

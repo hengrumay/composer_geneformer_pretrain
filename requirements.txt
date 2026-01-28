@@ -1,5 +1,7 @@
 # Training stack
-composer==0.32.1
+# Use a Composer version compatible with the Databricks runtime Torch.
+# (Torch is preinstalled on Serverless; we protect it via constraints in commands.sh.)
+composer>=0.32.1
 mosaicml-streaming==0.8.0
 
 # HF + data
