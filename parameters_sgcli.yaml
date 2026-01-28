@@ -57,15 +57,16 @@ loggers:
 #   (from `serverless_gpu.launcher import distributed`) and must be NNODES=1.
 # -----------------------------------------------------------------------------
 distributed:
-  enabled: false
+  enabled: true
   mode: torchrun
   torchrun:
     # Optional: override GPU processes per node. Use "auto" to let commands.sh detect.
-    nproc_per_node: auto
+    # For A10 multi-node, this should be 1 GPU process per node.
+    nproc_per_node: 1
   serverless_gpu:
     # Serverless GPU launcher parameters.
     gpus: 8
-    gpu_type: h100_80gb
+    gpu_type: a10
     # Set true to provision remote GPUs (multi-node) via serverless orchestration.
     # For single-host 8xH100, you likely want false.
     remote: false

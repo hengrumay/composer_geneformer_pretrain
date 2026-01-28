@@ -20,15 +20,12 @@ environment:
     # Used by commands.sh to switch between single-node and multi-node torchrun.
     # For A10: set NNODES == gpus (since A10 has 1 GPU per node).
     # For H100 single-node 8x: NNODES=1.
-    #
-    # NOTE: Databricks *Serverless* generally does not support true multi-host torchrun (--nnodes>1).
-    # Keep NNODES=1 here; for multi-host distributed training, use a classic multi-node GPU cluster.
-    NNODES: "1"
+    NNODES: "8"
 
 compute:
-  # Single-host H100 (8 GPUs per node)
+  # Multi-node A10 (1 GPU per node => gpus == number of nodes)
   gpus: 8
-  gpu_type: h100_80gb
+  gpu_type: a10
 
 # --- compute presets (toggle by commenting/uncommenting the whole block) ---
 # compute:
