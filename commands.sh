@@ -42,12 +42,26 @@ if [ "${NNODES}" != "1" ]; then
     env | egrep '^(NNODES|NODE_RANK|MASTER_ADDR|MASTER_PORT|RANK|WORLD_SIZE|LOCAL_RANK)=' || true
     exit 2
   fi
+
+  # Resolve MASTER_ADDR to an IP if possible (helps avoid per-node DNS quirks).
+  if command -v getent >/dev/null 2>&1; then
+    MASTER_ADDR_IP="$(getent hosts "${MASTER_ADDR}" | awk '{print $1}' | head -n 1 || true)"
+    if [ -n "${MASTER_ADDR_IP}" ]; then
+      MASTER_ADDR="${MASTER_ADDR_IP}"
+    fi
+  fi
+
   echo ">>> Multi-node torchrun: NNODES=${NNODES} NODE_RANK=${NODE_RANK} RDZV=${MASTER_ADDR}:${MASTER_PORT}"
+  echo ">>> Hostname: $(hostname)"
+  echo ">>> Env (filtered):"
+  env | egrep '^(NNODES|NODE_RANK|MASTER_ADDR|MASTER_PORT|RANK|WORLD_SIZE|LOCAL_RANK)=' || true
+
   torchrun \
     --nnodes="${NNODES}" \
     --nproc_per_node="${NPROC_PER_NODE}" \
     --node_rank="${NODE_RANK}" \
     --rdzv_backend=c10d \
+    --rdzv_conf timeout=900 \
     --rdzv_endpoint="${MASTER_ADDR}:${MASTER_PORT}" \
     train.py parameters_sgcli.yaml
 else
