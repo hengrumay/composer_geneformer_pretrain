@@ -30,12 +30,14 @@ from importlib.metadata import version, PackageNotFoundError
 lines = []
 
 # Critical: do not let pip change these if already present in the Databricks runtime.
-# Use torch.__version__ with local build suffix (e.g. +cu126) to avoid mismatches like 2.7.1 vs 2.7.1+cu126.
+# Pin torch to the runtime's *base* version so pip doesn't try to swap it.
+# (Using `===2.7.1+cu126` makes pip look for that exact build on PyPI, which doesn't exist.)
 try:
     import torch
     tv = getattr(torch, "__version__", None)
     if tv:
-        lines.append(f"torch==={tv}")
+        base = tv.split("+", 1)[0]
+        lines.append(f"torch=={base}")
 except Exception:
     pass
 
@@ -54,6 +56,12 @@ for ln in lines:
     print("  ", ln)
 PY
 
+echo ">>> Installing Composer (bypass torch constraint by using --no-deps)"
+# Composer declares torch<2.7.1 but the Serverless runtime has torch 2.7.1+cu126.
+# Installing composer with --no-deps avoids pip trying to resolve/downgrade torch.
+python -m pip install --no-deps "composer==0.32.1"
+
+echo ">>> Installing remaining requirements with deps (under constraints)"
 python -m pip install -r requirements.txt -c /tmp/pip_constraints.txt --upgrade-strategy only-if-needed
 
 echo ">>> Verifying composer import"
