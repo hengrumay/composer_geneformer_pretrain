@@ -28,6 +28,17 @@ if [ -z "${NPROC_PER_NODE:-}" ]; then
 fi
 echo ">>> Using NPROC_PER_NODE=${NPROC_PER_NODE}"
 
+echo ">>> Sanity check (per node): torch cuda + env"
+python - <<'PY'
+import os
+import torch
+
+print("cuda:", torch.cuda.is_available())
+print("device_count:", torch.cuda.device_count())
+for k in ("NNODES", "WORLD_SIZE", "RANK", "LOCAL_RANK", "NODE_RANK", "MASTER_ADDR", "MASTER_PORT", "RDZV_ID"):
+    print(f"env {k}:", os.getenv(k))
+PY
+
 # Multi-node support (A10 multi-GPU == multi-node): set NNODES>1 in workload.yaml env_variables.
 NNODES="${NNODES:-1}"
 NODE_RANK="${NODE_RANK:-0}"
