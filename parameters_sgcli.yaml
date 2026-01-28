@@ -1,5 +1,3 @@
-# parameters_sgcli.yaml 
-
 model_config:
   hidden_size: 256
   num_hidden_layers: 6
@@ -13,10 +11,9 @@ model_config:
   model_type: bert
   num_attention_heads: 4
 
-# NOTE: For multi-worker serverless, prefer sharded checkpoints to avoid rank0 OOM.
 fsdp_config:
   sharding_strategy: FULL_SHARD
-  state_dict_type: sharded
+  state_dict_type: full
   cpu_offload: False
   mixed_precision: DEFAULT
   backward_prefetch: BACKWARD_POST
@@ -47,38 +44,10 @@ loggers:
     tracking_uri: databricks
     experiment_name: mlflow_experiments/geneformer_pretraining
 
-# -----------------------------------------------------------------------------
-# Distributed training control
-#
-# mode: "none" | "torchrun" | "serverless_gpu"
-#
-# serverless_gpu mode:
-# - Uses Databricks Serverless GPU @distributed launcher (remote multi-worker)
-# - DO NOT rely on NNODES/WORLD_SIZE env vars to decide topology
-# - Your commands.sh should run "python train.py ..." and train.py should call
-#   serverless_gpu.distributed(...).distributed()
-# -----------------------------------------------------------------------------
-distributed:
-  enabled: true
-  mode: serverless_gpu
-
-  # This is ignored in serverless_gpu mode; safe to keep.
-  torchrun:
-    nproc_per_node: 1
-
-  serverless_gpu:
-    gpus: 8
-    gpu_type: a10
-    remote: true
-
-    # Keep true if your train.py manually does dist.init_process_group("nccl")
-    manual_init_process_group: true
-    ddp_backend: nccl
-
-# General
 device: gpu
 seed_val: 42
 run_name: geneformer_sgcli_mmt_test
+
 working_dir: /pretrain/temp
 
 # --- Data: use Unity Catalog Volumes (already materialized) ---
@@ -89,17 +58,14 @@ streaming_dataset_location: streaming/genecorpus_30M_2048.dataset
 
 mlm_probability: 0.15
 
-# --- Training: smoke test ---
-# Per-rank batch sizes. Effective batch size = train_batch_size * world_size (8).
+# --- Training: keep small for smoke test ---
 train_batch_size: 16
 eval_batch_size: 16
 device_train_microbatch_size: 16
-
 train_subset_num_batches: 10
 eval_subset_num_batches: 2
-
-max_duration: 10ba
-eval_interval: 10ba
+max_duration: 1ep
+eval_interval: 1ep
 
 progress_bar: false
 log_to_console: true
@@ -107,8 +73,11 @@ console_log_interval: 1ba
 
 autoresume: false
 
-# Checkpointing
-save_interval: 10ba
+# Save checkpoints somewhere that doesn't require AWS creds
+save_interval: 1ep
 save_num_checkpoints_to_keep: 1
 save_overwrite: true
+# Composer's UC object store expects Unity Catalog Volume paths to start with "Volumes"
+# (no leading slash). Use a writable location in your UC Volume.
 save_folder: Volumes/main/srijit_nair/geneformer/tmp/geneformer_sgcli_mmt_test/checkpoints
+
