@@ -90,6 +90,14 @@ print("mlflow:", v("mlflow"))
 print("databricks_sdk:", v("databricks.sdk"))
 PY
 
+echo ">>> Dependency sanity check (pip check)"
+python -m pip check
+
+if [ "${INSTALL_ONLY:-0}" = "1" ] || [ "${INSTALL_ONLY:-0}" = "true" ]; then
+  echo ">>> INSTALL_ONLY=1 set; exiting after dependency install + checks"
+  exit 0
+fi
+
 # Create working directory (config can override)
 mkdir -p /pretrain/temp
 
