@@ -32,10 +32,8 @@ names = [
     "torch",
     "torchvision",
     "torchaudio",
-    "triton",
     "mlflow",
     "databricks-sdk",
-    "packaging",
 ]
 
 lines = []
@@ -175,10 +173,8 @@ if [ "${DISTRIBUTED_MODE}" = "serverless_gpu" ]; then
 fi
 
 if [ "${USE_SERVERLESS_GPU_DISTRIBUTED}" = "1" ] || [ "${USE_SERVERLESS_GPU_DISTRIBUTED}" = "true" ]; then
-  if [ "${NNODES}" != "1" ]; then
-    echo "ERROR: USE_SERVERLESS_GPU_DISTRIBUTED is currently supported only for NNODES=1."
-    exit 2
-  fi
+  # In Serverless multi-worker layouts, NNODES/WORLD_SIZE may be set by the platform.
+  # We ignore NNODES here because `serverless_gpu @distributed(remote=...)` controls provisioning.
 
   # These env vars are consumed by train.py to configure serverless_gpu.launcher.distributed(...)
   export USE_SERVERLESS_GPU_DISTRIBUTED=1
