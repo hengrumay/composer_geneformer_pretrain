@@ -400,8 +400,7 @@ def main(cfg: DictConfig):
         #load_path=cfg.get("load_path", None),
         #load_weights_only=cfg.get("load_weights_only", False),
         python_log_level=cfg.get("python_log_level", None),
-        seed=seed_val,        
-        fsdp_config = cfg.get("fsdp_config", None),
+        seed=seed_val,
         loggers=loggers,
         callbacks=callbacks,
 
