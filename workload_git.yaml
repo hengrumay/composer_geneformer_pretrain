@@ -1,4 +1,4 @@
-experiment_name: geneformer-pretrain-sgcli-smoke
+experiment_name: geneformer-pretrain-sgcli-git-test
 
 workspace:
   host: https://e2-dogfood.staging.cloud.databricks.com/
