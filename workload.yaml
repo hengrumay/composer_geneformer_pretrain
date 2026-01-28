@@ -1,58 +1,26 @@
 experiment_name: geneformer-sgcli-mmt-test
 
 workspace:
-  # Change to your workspace host (must match where you run `sgcli` auth).
   host: https://e2-dogfood.staging.cloud.databricks.com/
 
-# Option 2: run from a local repo snapshot (tarball uploaded by sgcli).
-# IMPORTANT: this requires `local_repo_path` to be a git repo with a clean working tree.
 repo_snapshot:
-  # Point this at the git repo you want snapshotted/uploaded by sgcli.
   local_repo_path: /Users/may.merkletan/Documents/Projects/Merck/composer_geneformer_pretrain
 
 environment:
   dependencies: requirements.yaml
   env_variables:
     NCCL_DEBUG: "WARN"
-    # Enable MLflow system metrics as early as possible (before any MLflow init done by the
-    # sgcli runner). Having this only in commands.sh can be too late.
+
+    # Enable MLflow system metrics as early as possible.
     MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
-    # Used by commands.sh to switch between single-node and multi-node torchrun.
-    # For A10: set NNODES == gpus (since A10 has 1 GPU per node).
-    # For H100 single-node 8x: NNODES=1.
-    # For Serverless GPU `@distributed(remote=True)`, keep this job single-worker;
-    # the launcher provisions the distributed workers.
-    NNODES: "1"
+    # Torchrun multi-node (classic cluster, 1 GPU per A10 node)
+    NNODES: "8"
+    MASTER_PORT: "29400"
 
 compute:
-  # Single-worker job; `serverless_gpu` launcher provisions distributed A10s.
-  gpus: 1
+  gpus: 8
   gpu_type: a10
 
-# --- compute presets (toggle by commenting/uncommenting the whole block) ---
-# compute:
-#   # Single-node A10 (1 GPU per node)
-#   gpus: 1
-#   gpu_type: a10
-#
-# compute:
-#   # Multi-node A10 (1 GPU per node => gpus == number of nodes)
-#   gpus: 2
-#   gpu_type: a10
-#
-# compute:
-#   # Multi-node A10
-#   gpus: 4
-#   gpu_type: a10
-#
-# compute:
-#   # Multi-node H100 (8 GPUs per node => gpus must be multiple of 8)
-#   gpus: 8
-#   gpu_type: h100_80gb
-
-# Use bash_script for geneformer so you can pass config args inside the script.
-# This entrypoint is uploaded by sgcli and then runs the extracted repo copy.
 bash_script: sgcli_entrypoint.sh
-
 max_retries: 0
 
