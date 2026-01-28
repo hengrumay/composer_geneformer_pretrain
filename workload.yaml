@@ -1,3 +1,5 @@
+# workload.yaml (paste as-is)
+
 experiment_name: geneformer-sgcli-mmt-test
 
 workspace:
@@ -10,17 +12,22 @@ environment:
   dependencies: requirements.yaml
   env_variables:
     NCCL_DEBUG: "WARN"
-
-    # Enable MLflow system metrics as early as possible.
     MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
-    # Torchrun multi-node (classic cluster, 1 GPU per A10 node)
+
+    # Multi-worker torchrun mode (like the helloworld example):
+    # - scg-cli/serverless will inject MASTER_ADDR, MASTER_PORT, NODE_RANK.
+    # - commands.sh uses these and runs torchrun --nnodes=$NNODES --nproc_per_node=1 ...
     NNODES: "8"
-    MASTER_PORT: "29400"
+
+    # Strongly recommended to avoid DataLoader worker explosion:
+    # you currently have num_workers=32 in train.py; with 8 ranks that would be 256 workers.
+    # If you update train.py to read this env var, set it here.
+    # DATALOADER_WORKERS: "4"
 
 compute:
+  # Intention: 8 workers × 1 GPU each (A10)
   gpus: 8
   gpu_type: a10
 
 bash_script: sgcli_entrypoint.sh
 max_retries: 0
-
