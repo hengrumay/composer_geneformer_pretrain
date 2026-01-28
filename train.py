@@ -10,6 +10,7 @@ import os
 import pickle
 import random
 import subprocess
+import inspect
 
 import numpy as np
 import pytz
@@ -90,6 +91,45 @@ def _maybe_init_torch_distributed():
     except Exception as e:
         # Don't hard-fail: Composer/Trainer may initialize the process group itself.
         print(f"WARNING: torch.distributed init_process_group failed/skipped: {e}")
+
+
+def _get_dist_rank_world_size():
+    """Return (rank, world_size) if torch.distributed is initialized else (0, 1)."""
+    try:
+        import torch.distributed as dist  # type: ignore
+        if dist.is_available() and dist.is_initialized():
+            return int(dist.get_rank()), int(dist.get_world_size())
+    except Exception:
+        pass
+    return 0, 1
+
+
+def _streaming_shard_kwargs(rank: int, world_size: int, seed: int):
+    """Build StreamingDataset kwargs for rank-aware sharding, if supported by this version."""
+    kwargs = {}
+    if world_size <= 1:
+        return kwargs
+
+    try:
+        sig = inspect.signature(StreamingDataset.__init__)  # type: ignore[name-defined]
+        params = sig.parameters
+
+        # Common MosaicML StreamingDataset sharding params (vary by version).
+        if "num_canonical_nodes" in params:
+            kwargs["num_canonical_nodes"] = world_size
+        if "canonical_node_rank" in params:
+            kwargs["canonical_node_rank"] = rank
+        elif "node_rank" in params:
+            kwargs["node_rank"] = rank
+
+        # Make shuffle deterministic across ranks if supported.
+        if "shuffle_seed" in params:
+            kwargs["shuffle_seed"] = seed
+    except Exception:
+        # If inspection fails, keep kwargs empty and rely on StreamingDataset internal dist detection.
+        return {}
+
+    return kwargs
 
 
 def _as_long_tensor(x):
@@ -238,10 +278,24 @@ def main(cfg: DictConfig):
     print(model)
 
     #Create streaming dataset
+    rank, world_size = _get_dist_rank_world_size()
+    if world_size > 1:
+        print(f"Distributed context detected: rank={rank} world_size={world_size}")
+    shard_kwargs = _streaming_shard_kwargs(rank=rank, world_size=world_size, seed=seed_val)
+    if shard_kwargs:
+        print(f"StreamingDataset sharding kwargs: {shard_kwargs}")
 
     if data_local:
-        streaming_dataset_train = StreamingDataset(local=f"{local_streaming_dataset_location}/train" ,batch_size=train_batch_size)
-        streaming_dataset_eval = StreamingDataset(local=f"{local_streaming_dataset_location}/test" ,batch_size=eval_batch_size)        
+        streaming_dataset_train = StreamingDataset(
+            local=f"{local_streaming_dataset_location}/train",
+            batch_size=train_batch_size,
+            **shard_kwargs,
+        )
+        streaming_dataset_eval = StreamingDataset(
+            local=f"{local_streaming_dataset_location}/test",
+            batch_size=eval_batch_size,
+            **shard_kwargs,
+        )
     else:
         if remote_streaming_dataset_location is None:
             raise ValueError("Remote data_location requires a valid remote_data_dir")
@@ -249,11 +303,13 @@ def main(cfg: DictConfig):
             remote=f"{remote_streaming_dataset_location}/train",
             local=f"{streaming_dataset_cache_location}/train",
             batch_size=train_batch_size,
+            **shard_kwargs,
         )
         streaming_dataset_eval = StreamingDataset(
             remote=f"{remote_streaming_dataset_location}/test",
             local=f"{streaming_dataset_cache_location}/test",
             batch_size=eval_batch_size,
+            **shard_kwargs,
         )
 
     #Prepare composer model
