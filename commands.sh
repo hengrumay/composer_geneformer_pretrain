@@ -13,9 +13,15 @@ python -m pip install --no-deps -r requirements.txt
 # Create working directory (config can override)
 mkdir -p /pretrain/temp
 
-echo ">>> Starting training (single-node torchrun)"
+echo ">>> Starting training"
 export MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING=true
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+
+# Multi-node support: set NNODES>1 in workload.yaml env_variables.
+NNODES="${NNODES:-1}"
+NODE_RANK="${NODE_RANK:-0}"
+MASTER_ADDR="${MASTER_ADDR:-}"
+MASTER_PORT="${MASTER_PORT:-29400}"
 
 # Auto-detect GPUs per node unless NPROC_PER_NODE is explicitly set.
 if [ -z "${NPROC_PER_NODE:-}" ]; then
@@ -28,6 +34,28 @@ if [ -z "${NPROC_PER_NODE:-}" ]; then
 fi
 echo ">>> Using NPROC_PER_NODE=${NPROC_PER_NODE}"
 
+USE_SERVERLESS_GPU_DISTRIBUTED="${USE_SERVERLESS_GPU_DISTRIBUTED:-0}"
+if [ "${USE_SERVERLESS_GPU_DISTRIBUTED}" = "1" ] || [ "${USE_SERVERLESS_GPU_DISTRIBUTED}" = "true" ]; then
+  if [ "${NNODES}" != "1" ]; then
+    echo "ERROR: USE_SERVERLESS_GPU_DISTRIBUTED is currently supported only for NNODES=1."
+    exit 2
+  fi
+
+  # These env vars are consumed by train.py to configure serverless_gpu.launcher.distributed(...)
+  export SERVERLESS_GPU_GPUS="${SERVERLESS_GPU_GPUS:-${NPROC_PER_NODE}}"
+  export SERVERLESS_GPU_GPU_TYPE="${SERVERLESS_GPU_GPU_TYPE:-${GPU_TYPE:-}}"
+  export SERVERLESS_GPU_REMOTE="${SERVERLESS_GPU_REMOTE:-false}"
+
+  echo ">>> Serverless GPU @distributed enabled"
+  echo ">>> SERVERLESS_GPU_GPUS=${SERVERLESS_GPU_GPUS}"
+  echo ">>> SERVERLESS_GPU_GPU_TYPE=${SERVERLESS_GPU_GPU_TYPE:-<unset>}"
+  echo ">>> SERVERLESS_GPU_REMOTE=${SERVERLESS_GPU_REMOTE}"
+
+  # Do NOT use torchrun here; the serverless_gpu launcher will create the distributed workers.
+  python train.py parameters_sgcli.yaml
+  exit 0
+fi
+
 echo ">>> Sanity check (per node): torch cuda + env"
 python - <<'PY'
 import os
@@ -38,12 +66,6 @@ print("device_count:", torch.cuda.device_count())
 for k in ("NNODES", "WORLD_SIZE", "RANK", "LOCAL_RANK", "NODE_RANK", "MASTER_ADDR", "MASTER_PORT", "RDZV_ID"):
     print(f"env {k}:", os.getenv(k))
 PY
-
-# Multi-node support (A10 multi-GPU == multi-node): set NNODES>1 in workload.yaml env_variables.
-NNODES="${NNODES:-1}"
-NODE_RANK="${NODE_RANK:-0}"
-MASTER_ADDR="${MASTER_ADDR:-}"
-MASTER_PORT="${MASTER_PORT:-29400}"
 
 if [ "${NNODES}" != "1" ]; then
   if [ -z "${MASTER_ADDR}" ] || [ -z "${NODE_RANK}" ]; then

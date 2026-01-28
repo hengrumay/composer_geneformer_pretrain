@@ -32,6 +32,24 @@ from omegaconf import DictConfig
 
 from cfgutils import *
 
+def _env_truthy(name: str, default: str = "0") -> bool:
+    v = os.getenv(name, default)
+    return str(v).strip().lower() in ("1", "true", "yes", "y", "on")
+
+
+def _get_serverless_gpu_distributed():
+    """Best-effort import for Databricks Serverless GPU @distributed decorator."""
+    try:
+        from serverless_gpu.launcher import distributed  # type: ignore
+        return distributed
+    except Exception:
+        try:
+            from serverless_gpu import distributed  # type: ignore
+            return distributed
+        except Exception:
+            return None
+
+
 def _as_long_tensor(x):
     """Ensure token ids are int64 tensors (required by HF MLM collator)."""
     if isinstance(x, torch.Tensor):
@@ -287,9 +305,42 @@ def main(cfg: DictConfig):
 
 if __name__ == '__main__':
     yaml_path, args_list = sys.argv[1], sys.argv[2:]
-    with open(yaml_path) as f:
-        yaml_cfg = om.load(f)
-    cli_cfg = om.from_cli(args_list)
-    cfg = om.merge(yaml_cfg, cli_cfg)
-    cfg = cast(DictConfig, cfg)  # for type checking
-    main(cfg)
+
+    def _run_from_yaml(yaml_path: str, args_list: list[str]):
+        with open(yaml_path) as f:
+            yaml_cfg = om.load(f)
+        cli_cfg = om.from_cli(args_list)
+        cfg = om.merge(yaml_cfg, cli_cfg)
+        cfg = cast(DictConfig, cfg)  # for type checking
+        main(cfg)
+
+    # Optional Databricks Serverless GPU launcher mode:
+    # - Enable with USE_SERVERLESS_GPU_DISTRIBUTED=1 (set in workload.yaml env_variables).
+    # - Configure with:
+    #   - SERVERLESS_GPU_GPUS (default: 1)
+    #   - SERVERLESS_GPU_GPU_TYPE (optional, e.g. "h100_80gb")
+    #   - SERVERLESS_GPU_REMOTE (default: false)
+    if _env_truthy("USE_SERVERLESS_GPU_DISTRIBUTED", "0"):
+        distributed = _get_serverless_gpu_distributed()
+        if distributed is None:
+            raise RuntimeError(
+                "USE_SERVERLESS_GPU_DISTRIBUTED=1 but serverless_gpu is not importable. "
+                "This mode requires Databricks Serverless GPU runtime (serverless_gpu package)."
+            )
+
+        gpus = int(os.getenv("SERVERLESS_GPU_GPUS", "1"))
+        gpu_type = os.getenv("SERVERLESS_GPU_GPU_TYPE", "").strip() or None
+        remote = _env_truthy("SERVERLESS_GPU_REMOTE", "false")
+
+        kwargs = {"gpus": gpus, "remote": remote}
+        if gpu_type is not None:
+            kwargs["gpu_type"] = gpu_type
+
+        wrapped = distributed(**kwargs)(_run_from_yaml)
+        # Some implementations expose `.distributed(...)`; others are callable directly.
+        if hasattr(wrapped, "distributed"):
+            wrapped.distributed(yaml_path, args_list)
+        else:
+            wrapped(yaml_path, args_list)
+    else:
+        _run_from_yaml(yaml_path, args_list)
