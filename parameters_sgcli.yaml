@@ -81,3 +81,14 @@ save_overwrite: true
 # (no leading slash). Use a writable location in your UC Volume.
 save_folder: Volumes/main/srijit_nair/geneformer/tmp/geneformer_sgcli_mmt_test/checkpoints
 
+
+# --- Distributed (Serverless GPU @distributed) ---
+distributed:
+  enabled: true
+  mode: serverless_gpu
+  serverless_gpu:
+    gpus: 8           # one GPU per node (A10)
+    gpu_type: a10
+    remote: true
+    manual_init_process_group: true
+    ddp_backend: nccl
