@@ -120,33 +120,32 @@ if [ "${NNODES}" != "1" ]; then
     exit 2
   fi
 
-  # IMPORTANT: do not fail immediately; rank0 may not be listening yet.
-  echo ">>> Rendezvous probe: retry connect to MASTER_ADDR:MASTER_PORT (up to 180s)"
-  python - <<'PY'
-import os, socket, time
-host = os.environ["MASTER_ADDR"]
-port = int(os.environ["MASTER_PORT"])
-ip = socket.gethostbyname(host)
-print("resolved:", host, "->", ip, "port", port)
-deadline = time.time() + 180
-last = None
-while time.time() < deadline:
-    s = socket.socket()
-    s.settimeout(2)
-    try:
-        s.connect((ip, port))
-        print("connect OK")
-        raise SystemExit(0)
-    except Exception as e:
-        last = e
-        time.sleep(2)
-    finally:
-        try: s.close()
-        except Exception: pass
-print("connect still failing after retries:", last)
-# Do NOT hard-fail here; torchrun itself may still succeed depending on timing.
-print("continuing into torchrun anyway...")
-PY
+  # Rendezvous probe disabled (torchrun will handle connection attempts).
+  # echo ">>> Rendezvous probe: retry connect to MASTER_ADDR:MASTER_PORT (up to 180s)"
+  # python - <<'PY'
+  # import os, socket, time
+  # host = os.environ["MASTER_ADDR"]
+  # port = int(os.environ["MASTER_PORT"])
+  # ip = socket.gethostbyname(host)
+  # print("resolved:", host, "->", ip, "port", port)
+  # deadline = time.time() + 180
+  # last = None
+  # while time.time() < deadline:
+  #     s = socket.socket()
+  #     s.settimeout(2)
+  #     try:
+  #         s.connect((ip, port))
+  #         print("connect OK")
+  #         raise SystemExit(0)
+  #     except Exception as e:
+  #         last = e
+  #         time.sleep(2)
+  #     finally:
+  #         try: s.close()
+  #         except Exception: pass
+  # print("connect still failing after retries:", last)
+  # print("continuing into torchrun anyway...")
+  # PY
 
   echo ">>> Multi-node torchrun launch"
   echo ">>> Hostname: $(hostname)"
