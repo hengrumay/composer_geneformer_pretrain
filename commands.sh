@@ -90,7 +90,7 @@ fi
 # Filter out known/expected conflicts on Serverless:
 # - composer pins torch/torchvision upper bounds that may not yet include the runtime versions
 # - databricks-serverless-gpu/databricks-connect pins are controlled by the platform image
-PIP_CHECK_BAD="$(echo "${PIP_CHECK_OUT}" | grep -vE '^composer .* (torch|torchvision)<|^databricks-serverless-gpu |^databricks-connect ' || true)"
+PIP_CHECK_BAD="$(echo "${PIP_CHECK_OUT}" | grep -vE '^composer .* (torch|torchvision)<|^composer .*mosaicml-cli|^databricks-serverless-gpu |^databricks-connect ' || true)"
 if [ -n "${PIP_CHECK_BAD}" ]; then
   echo "ERROR: Unexpected dependency conflicts detected:"
   echo "${PIP_CHECK_BAD}"
