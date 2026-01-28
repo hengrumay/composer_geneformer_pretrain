@@ -42,6 +42,25 @@ except Exception as e:
 PY
   COMPOSER_OK=$?
   set -e
+
+  # If composer installed but is missing its CLI runtime module ("mcli"), install mosaicml-cli.
+  if [ "${COMPOSER_OK}" != "0" ]; then
+    echo ">>> Installing missing composer runtime dep (attempt 1a): pip install --no-deps mosaicml-cli"
+    python -m pip install --no-deps mosaicml-cli || true
+    set +e
+    python - <<'PY'
+import sys
+try:
+    import composer  # noqa: F401
+    print("composer: import OK after installing 'mosaicml-cli'")
+    sys.exit(0)
+except Exception as e:
+    print("composer still not importable:", repr(e))
+    sys.exit(1)
+PY
+    COMPOSER_OK=$?
+    set -e
+  fi
 fi
 if [ "${COMPOSER_OK}" != "0" ]; then
   echo ">>> Installing Composer (attempt 2): pip install --no-deps mosaicml"
