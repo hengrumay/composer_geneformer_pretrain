@@ -17,8 +17,8 @@ environment:
 
     # --- Torchrun topology toggle (pick one preset) ---
     # 1) Single-node 8×GPU (default):
-    #NNODES: "1"
-    #NPROC_PER_NODE: "8"   # optional; commands.sh auto-detects GPUs
+    NNODES: "1"
+    NPROC_PER_NODE: "8"   # optional; commands.sh auto-detects GPUs
     #
     # 2) Multi-node 1×GPU per host (example 8 hosts = 8 GPUs total):
     #NNODES: "8"
@@ -29,8 +29,8 @@ environment:
     #NPROC_PER_NODE: "2"
     #
     # 4) Sanity probe: 2 nodes × 4 GPUs each (total 8 GPUs; minimum valid for h100)
-    NNODES: "8"
-    NPROC_PER_NODE: "2"
+    #NNODES: "8"
+    # NPROC_PER_NODE: "2"
     MASTER_PORT: "29400"
 
     # Expose GPU type to the training script for run_name tagging.
