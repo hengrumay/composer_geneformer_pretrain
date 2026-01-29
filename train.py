@@ -211,7 +211,7 @@ def main(cfg: DictConfig):
         f"LOCAL_RANK={local_rank} MASTER_ADDR={master_addr} MASTER_PORT={master_port}"
     )
 
-    # Build a run name that encodes GPU type and world size for MLflow/Composer.
+    # Build a run name that encodes GPU type, world size, and procs/node for MLflow/Composer.
     base_run_name = cfg.get("run_name", "geneformer_run")
     device_label = "cpu"
     if torch.cuda.is_available():
@@ -219,7 +219,9 @@ def main(cfg: DictConfig):
             device_label = torch.cuda.get_device_name(torch.cuda.current_device()).replace(" ", "_")
         except Exception:
             device_label = "cuda"
-    run_name = f"{base_run_name}-gpus{world_size}-{device_label}"
+    gpu_type = os.getenv("GPU_TYPE", device_label)
+    nproc_per_node = os.getenv("NPROC_PER_NODE", "auto")
+    run_name = f"{base_run_name}-gpu{gpu_type}-ws{world_size}-ppn{nproc_per_node}"
     if rank == 0:
         print(f"[run_name] {run_name}")
 

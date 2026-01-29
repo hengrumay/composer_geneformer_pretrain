@@ -25,9 +25,16 @@ environment:
     #NPROC_PER_NODE: "1"
     #
     # 3) Multi-node 2×GPU per host (example 8 hosts × 2 GPUs = 16 GPUs total):
-    NNODES: "8"
+    #NNODES: "8"
+    #NPROC_PER_NODE: "2"
+    #
+    # 4) Sanity probe: 2 nodes × 2 GPUs (total 4 GPUs)
+    NNODES: "2"
     NPROC_PER_NODE: "2"
     MASTER_PORT: "29400"
+
+    # Expose GPU type to the training script for run_name tagging.
+    GPU_TYPE: "h100"
 
     # --- NCCL/Distributed (safe defaults for socket transport) ---
     NCCL_DEBUG: "WARN"
@@ -44,8 +51,8 @@ environment:
     DATALOADER_WORKERS: "4"
 
 compute:
-  # Multi-node 8 hosts × 2 GPUs each (total 16 GPUs). Adjust if you change NNODES/NPROC_PER_NODE.
-  gpus: 16
+  # Sanity probe: expect 2 nodes × 2 GPUs each (total 4 GPUs). Adjust as needed.
+  gpus: 4
   gpu_type: h100
 
 bash_script: sgcli_entrypoint.sh
