@@ -17,16 +17,16 @@ environment:
 
     # --- Torchrun topology toggle (pick one preset) ---
     # 1) Single-node 8×GPU (default):
-    NNODES: "1"
-    NPROC_PER_NODE: "8"   # optional; commands.sh auto-detects GPUs
+    # NNODES: "1"
+    # NPROC_PER_NODE: "8"   # optional; commands.sh auto-detects GPUs
     #
     # 2) Multi-node 1×GPU per host (example 8 hosts = 8 GPUs total):
     #NNODES: "8"
     #NPROC_PER_NODE: "1"
     #
     # 3) Multi-node 2×GPU per host (example 8 hosts × 2 GPUs = 16 GPUs total):
-    #NNODES: "8"
-    #NPROC_PER_NODE: "2"
+    NNODES: "2"
+    NPROC_PER_NODE: "8"
     #
     # 4) Sanity probe: 2 nodes × 4 GPUs each (total 8 GPUs; minimum valid for h100)
     #NNODES: "8"

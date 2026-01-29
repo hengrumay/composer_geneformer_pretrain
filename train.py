@@ -1,5 +1,4 @@
-
-
+# Databricks notebook source
 ##1 Set parameters
 
 import datetime
@@ -12,8 +11,6 @@ import random
 import subprocess
 import inspect
 import socket
-import shutil
-from pathlib import Path
 
 import numpy as np
 import pytz
@@ -213,19 +210,49 @@ def main(cfg: DictConfig):
         f"LOCAL_RANK={local_rank} MASTER_ADDR={master_addr} MASTER_PORT={master_port}"
     )
 
-    # Build a run name that encodes GPU type, world size, and procs/node for MLflow/Composer.
-    base_run_name = cfg.get("run_name", "geneformer_run")
-    device_label = "cpu"
-    if torch.cuda.is_available():
+    # Build a unique run name and optionally append it to the save folder so each launch
+    # writes to its own checkpoint directory. This prevents collisions with previous runs.
+    base_run_name = cfg.get("run_name", None)
+    run_name = base_run_name
+    if base_run_name:
+        gpu_tag = (
+            os.getenv("GPU_TYPE")
+            or os.getenv("SERVERLESS_GPU_GPU_TYPE")
+            or ""
+        ).strip()
+        nproc_per_node_str = (os.getenv("NPROC_PER_NODE") or "").strip()
+        nnodes_str = (os.getenv("NNODES") or "").strip()
+
+        pieces = [base_run_name]
+        if gpu_tag:
+            pieces.append(f"gpu{gpu_tag}")
+
+        nnodes = None
+        gpn = None
         try:
-            device_label = torch.cuda.get_device_name(torch.cuda.current_device()).replace(" ", "_")
+            nnodes = int(nnodes_str) if nnodes_str else None
         except Exception:
-            device_label = "cuda"
-    gpu_type = os.getenv("GPU_TYPE", device_label)
-    nproc_per_node = os.getenv("NPROC_PER_NODE", "auto")
-    run_name = f"{base_run_name}-gpu{gpu_type}-ws{world_size}-ppn{nproc_per_node}"
-    if rank == 0:
-        print(f"[run_name] {run_name}")
+            nnodes = None
+        try:
+            gpn = int(nproc_per_node_str) if nproc_per_node_str else None
+        except Exception:
+            gpn = None
+        if gpn is None and nnodes and world_size and world_size % nnodes == 0:
+            gpn = world_size // nnodes
+
+        if nnodes:
+            pieces.append(f"nn{nnodes}")
+        if gpn:
+            pieces.append(f"gpn{gpn}")
+        if world_size:
+            pieces.append(f"ws{world_size}")
+        if nproc_per_node_str:
+            pieces.append(f"ppn{nproc_per_node_str}")
+        if cfg.get("run_name_append_timestamp", True):
+            pieces.append(datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S"))
+        run_name = "-".join(pieces)
+        if rank == 0:
+            print(f"[run_name] {run_name}")
 
     seed_val = cfg.seed_val
     random.seed(seed_val)
@@ -256,16 +283,12 @@ def main(cfg: DictConfig):
         data_local = False
 
     # output directories
-    base_save_folder = cfg.get("save_folder", None)
-    save_folder = base_save_folder
+    save_folder = cfg.get("save_folder", None)
+    if cfg.get("save_folder_append_run_name", False) and save_folder and run_name:
+        save_folder = os.path.join(save_folder, run_name)
     save_interval = cfg.get("save_interval", None)
     save_overwrite = cfg.get("save_overwrite", False)
     save_num_checkpoints_to_keep = cfg.get("save_num_checkpoints_to_keep", 1)
-    save_append_run = cfg.get("save_folder_append_run_name", True)
-    if save_folder and save_append_run and run_name:
-        save_folder = os.path.join(save_folder, run_name)
-        if rank == 0:
-            print(f"[ckpt] save_folder_append_run_name enabled -> {save_folder}")
     if save_folder:
         if not os.path.isabs(save_folder):
             print(f"[ckpt] WARNING: save_folder is not absolute: {save_folder}")
@@ -298,118 +321,135 @@ def main(cfg: DictConfig):
     ]
 
     # -------------------------------------------------------------------------
-    # Optional: "save best checkpoint" helper (enabled via cfg.best_checkpoint.enabled)
-    class SaveBestCheckpointCallback(Callback):
-        def __init__(
-            self,
-            *,
-            metric_name: str = "loss/eval/total",
-            mode: str = "min",
-            save_folder: str | None = None,
-            best_filename: str = "best.pt",
-        ):
-            self.metric_name = metric_name
-            self.mode = mode
-            self.save_folder = save_folder
-            self.best_filename = best_filename
-            self.best_value: float | None = None
-
-        def _is_better(self, v: float) -> bool:
-            if self.best_value is None:
-                return True
-            if self.mode == "min":
-                return v < self.best_value
-            if self.mode == "max":
-                return v > self.best_value
-            raise ValueError(f"Unknown mode: {self.mode} (expected 'min' or 'max')")
-
-        def _extract_metric(self, state: State) -> float | None:
-            try:
-                m = getattr(state, "eval_metrics", None)
-            except Exception:
-                m = None
-            if not isinstance(m, dict):
-                return None
-
-            def coerce(x) -> float | None:
-                try:
-                    if isinstance(x, torch.Tensor):
-                        return float(x.detach().cpu().item())
-                    return float(x)
-                except Exception:
-                    return None
-
-            if self.metric_name in m:
-                return coerce(m[self.metric_name])
-            for _, inner in m.items():
-                if isinstance(inner, dict) and self.metric_name in inner:
-                    return coerce(inner[self.metric_name])
-            return None
-
-        def _latest_checkpoint_file(self) -> Path | None:
-            if not self.save_folder:
-                return None
-            p = Path(self.save_folder)
-            if not p.exists():
-                return None
-
-            exts = (".pt", ".ckpt", ".tar", ".bin")
-            candidates = []
-            for fp in p.iterdir():
-                if not fp.is_file():
-                    continue
-                if fp.name == self.best_filename:
-                    continue
-                if fp.suffix in exts:
-                    candidates.append(fp)
-            if not candidates:
-                candidates = [fp for fp in p.iterdir() if fp.is_file() and fp.name != self.best_filename]
-            if not candidates:
-                return None
-            return max(candidates, key=lambda f: f.stat().st_mtime)
-
-        def run_event(self, event: Event, state: State, logger: Logger):
-            try:
-                if hasattr(state, "rank") and int(state.rank) != 0:  # type: ignore[attr-defined]
-                    return
-            except Exception:
-                pass
-
-            if getattr(event, "name", "") not in ("EVAL_END", "EVALUATION_END"):
-                return
-
-            v = self._extract_metric(state)
-            if v is None:
-                return
-            if not self._is_better(v):
-                return
-
-            src = self._latest_checkpoint_file()
-            if src is None:
-                print(f"[best_ckpt] metric improved to {v:.6f} but no checkpoint file found to promote")
-                return
-
-            dst = Path(self.save_folder) / self.best_filename  # type: ignore[arg-type]
-            tmp = dst.with_suffix(dst.suffix + ".tmp")
-            try:
-                shutil.copy2(src, tmp)
-                tmp.replace(dst)
-                self.best_value = v
-                print(f"[best_ckpt] new best {self.metric_name}={v:.6f}; promoted {src.name} -> {dst.name}")
-            except Exception as e:
-                print(f"[best_ckpt] WARNING: failed to promote best checkpoint: {e}")
+    # Optional: "save best checkpoint" helper (commented out by default)
+    #
+    # If you want a stable "best.pt" file (rank 0 only) based on an eval metric,
+    # uncomment this entire block AND the `callbacks.append(...)` line below.
+    #
+    # Notes:
+    # - This does NOT change how Composer saves checkpoints; it only *copies* the
+    #   most recently written checkpoint in `save_folder` to `best.pt` whenever
+    #   the chosen eval metric improves.
+    # - Set `metric_name` to whatever you care about. For MLM, eval loss is a
+    #   typical choice, e.g. "loss/eval/total" (minimize).
+    #
+    # Example enabling:
+    #   callbacks.append(SaveBestCheckpointCallback(
+    #       metric_name="loss/eval/total",
+    #       mode="min",
+    #       save_folder=cfg.get("save_folder", None),
+    #       best_filename="best.pt",
+    #   ))
+    #
+    # import shutil
+    # from pathlib import Path
+    #
+    # class SaveBestCheckpointCallback(Callback):
+    #     def __init__(
+    #         self,
+    #         *,
+    #         metric_name: str = "loss/eval/total",
+    #         mode: str = "min",
+    #         save_folder: str | None = None,
+    #         best_filename: str = "best.pt",
+    #     ):
+    #         self.metric_name = metric_name
+    #         self.mode = mode
+    #         self.save_folder = save_folder
+    #         self.best_filename = best_filename
+    #         self.best_value: float | None = None
+    #
+    #     def _is_better(self, v: float) -> bool:
+    #         if self.best_value is None:
+    #             return True
+    #         if self.mode == "min":
+    #             return v < self.best_value
+    #         if self.mode == "max":
+    #             return v > self.best_value
+    #         raise ValueError(f"Unknown mode: {self.mode} (expected 'min' or 'max')")
+    #
+    #     def _extract_metric(self, state: State) -> float | None:
+    #         # Try common Composer shapes:
+    #         # - state.eval_metrics: {"eval": {"loss/eval/total": tensor/float, ...}, ...}
+    #         # - state.eval_metrics: {"loss/eval/total": tensor/float, ...}
+    #         try:
+    #             m = getattr(state, "eval_metrics", None)
+    #         except Exception:
+    #             m = None
+    #         if not isinstance(m, dict):
+    #             return None
+    #
+    #         def coerce(x) -> float | None:
+    #             try:
+    #                 if isinstance(x, torch.Tensor):
+    #                     return float(x.detach().cpu().item())
+    #                 return float(x)
+    #             except Exception:
+    #                 return None
+    #
+    #         if self.metric_name in m:
+    #             return coerce(m[self.metric_name])
+    #         for _, inner in m.items():
+    #             if isinstance(inner, dict) and self.metric_name in inner:
+    #                 return coerce(inner[self.metric_name])
+    #         return None
+    #
+    #     def _latest_checkpoint_file(self) -> Path | None:
+    #         if not self.save_folder:
+    #             return None
+    #         p = Path(self.save_folder)
+    #         if not p.exists():
+    #             return None
+    #
+    #         # Prefer typical checkpoint extensions; otherwise fall back to any file.
+    #         exts = (".pt", ".ckpt", ".tar", ".bin")
+    #         candidates = []
+    #         for fp in p.iterdir():
+    #             if not fp.is_file():
+    #                 continue
+    #             if fp.name == self.best_filename:
+    #                 continue
+    #             if fp.suffix in exts:
+    #                 candidates.append(fp)
+    #         if not candidates:
+    #             candidates = [fp for fp in p.iterdir() if fp.is_file() and fp.name != self.best_filename]
+    #         if not candidates:
+    #             return None
+    #         return max(candidates, key=lambda f: f.stat().st_mtime)
+    #
+    #     def run_event(self, event: Event, state: State, logger: Logger):
+    #         # Rank 0 only: checkpoint IO + "best" decision.
+    #         try:
+    #             if hasattr(state, "rank") and int(state.rank) != 0:  # type: ignore[attr-defined]
+    #                 return
+    #         except Exception:
+    #             pass
+    #
+    #         # Trigger after eval completes. Composer event names vary slightly across versions.
+    #         if getattr(event, "name", "") not in ("EVAL_END", "EVALUATION_END"):
+    #             return
+    #
+    #         v = self._extract_metric(state)
+    #         if v is None:
+    #             return
+    #         if not self._is_better(v):
+    #             return
+    #
+    #         src = self._latest_checkpoint_file()
+    #         if src is None:
+    #             print(f"[best_ckpt] metric improved to {v:.6f} but no checkpoint file found to promote")
+    #             return
+    #
+    #         dst = Path(self.save_folder) / self.best_filename  # type: ignore[arg-type]
+    #         tmp = dst.with_suffix(dst.suffix + ".tmp")
+    #         try:
+    #             shutil.copy2(src, tmp)
+    #             tmp.replace(dst)
+    #             self.best_value = v
+    #             print(f"[best_ckpt] new best {self.metric_name}={v:.6f}; promoted {src.name} -> {dst.name}")
+    #         except Exception as e:
+    #             print(f"[best_ckpt] WARNING: failed to promote best checkpoint: {e}")
     # -------------------------------------------------------------------------
-
-    best_cfg = cfg.get("best_checkpoint", {})
-    if best_cfg.get("enabled", False):
-        callbacks.append(
-            SaveBestCheckpointCallback(
-                metric_name=best_cfg.get("metric_name", "loss/eval/total"),
-                mode=best_cfg.get("mode", "min"),
-                save_folder=save_folder,
-                best_filename=best_cfg.get("best_filename", "best.pt"),
-            )
-        )
 
     # Algorithms
     algorithms = [
