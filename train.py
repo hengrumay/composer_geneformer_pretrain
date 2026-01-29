@@ -260,6 +260,11 @@ def main(cfg: DictConfig):
     save_interval = cfg.get("save_interval", None)
     save_overwrite = cfg.get("save_overwrite", False)
     save_num_checkpoints_to_keep = cfg.get("save_num_checkpoints_to_keep", 1)
+    save_append_run = cfg.get("save_folder_append_run_name", True)
+    if save_folder and save_append_run and run_name:
+        save_folder = os.path.join(save_folder, run_name)
+        if rank == 0:
+            print(f"[ckpt] save_folder_append_run_name enabled -> {save_folder}")
     if save_folder:
         if not os.path.isabs(save_folder):
             print(f"[ckpt] WARNING: save_folder is not absolute: {save_folder}")

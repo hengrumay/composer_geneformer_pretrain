@@ -79,6 +79,7 @@ save_num_checkpoints_to_keep: 2
 save_overwrite: false
 # Use the UC Volume mountpoint on the worker; absolute path is required for writes.
 save_folder: /Volumes/main/srijit_nair/geneformer/tmp/geneformer_sgcli_mmt_test/checkpoints
+save_folder_append_run_name: true
 
 # Save-best checkpoint promotion (rank 0): copies latest checkpoint to best.pt when metric improves.
 best_checkpoint:
