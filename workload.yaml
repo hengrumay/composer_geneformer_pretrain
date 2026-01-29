@@ -11,33 +11,35 @@ repo_snapshot:
 environment:
   dependencies: requirements.yaml
   env_variables:
-    NCCL_DEBUG: "WARN"
+    # --- MLflow + logging ---
     MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
-    # If true, train.py will upload any saved checkpoints as MLflow artifacts (rank 0 only).
     LOG_CHECKPOINTS_TO_MLFLOW: "true"
 
-    # Toggle NNODES here:
-    # - Single node with 8 GPUs (default): NNODES=1 (torchrun --standalone, NPROC_PER_NODE auto-detects to 8)
-    # - Multi-node with 1 GPU per host: set NNODES=8 (ensure cluster actually has 8 hosts)
+    # --- Torchrun topology toggle ---
+    # Single-node 8×GPU (default): set NNODES=1 (commands.sh auto-detects NPROC_PER_NODE=8)
     NNODES: "1"
-    #NNODES: "8"     # uncomment for multi-node
-    #NPROC_PER_NODE: "1"  # optional: fix per-host procs if you use multi-node 1×GPU hosts
+    # Multi-node 1×GPU per host: uncomment below AND ensure the cluster actually provisions N hosts.
+    #NNODES: "8"
+    #NPROC_PER_NODE: "1"
     MASTER_PORT: "29400"
 
-    # Keep DataLoader workers modest per rank (read in train.py)
-    DATALOADER_WORKERS: "4"
-
-    # Avoid OFI plugin warnings; force NCCL sockets
+    # --- NCCL/Distributed (safe defaults for socket transport) ---
+    NCCL_DEBUG: "WARN"
     NCCL_NET: "Socket"
     NCCL_IB_DISABLE: "1"
+    NCCL_SOCKET_IFNAME: "eth"
+    NCCL_ASYNC_ERROR_HANDLING: "1"
+    NCCL_TIMEOUT: "1800"
+    TORCH_DISTRIBUTED_DEBUG: "DETAIL"
+    TORCH_NCCL_BLOCKING_WAIT: "1"
+    TORCH_DIST_INIT_BARRIER_TIMEOUT: "1800"
 
-    # Strongly recommended to avoid DataLoader worker explosion:
-    # you currently have num_workers=32 in train.py; with 8 ranks that would be 256 workers.
-    # If you update train.py to read this env var, set it here.
-    # DATALOADER_WORKERS: "4"
+    # --- Dataloader workers ---
+    DATALOADER_WORKERS: "4"
 
 compute:
-  # Intention: single H100 box with 8 GPUs (NNODES=1), or 8 hosts × 1 GPU each if NNODES=8.
+  # Default: single H100 box with 8 GPUs (NNODES=1).
+  # If you switch to multi-node 1×GPU hosts, set NNODES accordingly and ensure the backend provisions enough hosts.
   gpus: 8
   gpu_type: h100
 
