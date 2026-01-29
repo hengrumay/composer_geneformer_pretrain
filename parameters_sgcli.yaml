@@ -64,7 +64,7 @@ eval_batch_size: 16
 device_train_microbatch_size: 16
 train_subset_num_batches: -1
 eval_subset_num_batches: -1
-max_duration: 5ep
+max_duration: 100ep
 eval_interval: 1ep
 
 progress_bar: false
@@ -74,7 +74,7 @@ console_log_interval: 1ba
 autoresume: false
 
 # Save checkpoints somewhere that doesn't require AWS creds
-save_interval: 1ep
+save_interval: 1000ba
 save_num_checkpoints_to_keep: 2
 save_overwrite: false
 # Use the UC Volume mountpoint on the worker; absolute path is required for writes.
