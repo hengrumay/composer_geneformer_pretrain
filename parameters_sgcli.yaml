@@ -75,7 +75,7 @@ autoresume: false
 
 # Save checkpoints somewhere that doesn't require AWS creds
 save_interval: 1000ba
-save_num_checkpoints_to_keep: 2
+save_num_checkpoints_to_keep: 10
 save_overwrite: false
 # Use the UC Volume mountpoint on the worker; absolute path is required for writes.
 save_folder: /Volumes/main/srijit_nair/geneformer/tmp/geneformer_sgcli_mmt_test/checkpoints

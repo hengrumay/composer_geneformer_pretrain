@@ -2,6 +2,20 @@
 
 This folder is a minimal `sgcli` config to run the `hengrumay/composer_geneformer_pretrain` repo on Databricks Serverless GPU.
 
+## Quick map for `workload.yaml` runs
+- `workload.yaml`: sgcli job spec (local snapshot). Uses `requirements.yaml` and runs `sgcli_entrypoint.sh`.
+- `requirements.yaml`: minimal bootstrap (pip + mlflow); repo deps installed later.
+- `sgcli_entrypoint.sh`: finds the extracted repo and calls `commands.sh`.
+- `commands.sh`: installs `requirements.txt` with constraints, installs `composer` (no-deps), launches `torchrun ... train.py parameters_sgcli.yaml`.
+- `parameters_sgcli.yaml`: training config (paths, hparams, save/eval intervals, best checkpoint).
+- `train.py`: main training script (distributed setup, checkpoints, best checkpoint).
+- `cfgutils.py`: builders for loggers/callbacks/algorithms used by `train.py`.
+- `mcli/__init__.py`: stub so Composer imports succeed without installing `mosaicml-cli`.
+- `requirements.txt`: repo dependencies installed by `commands.sh`.
+
+Legacy / not used by `workload.yaml` (safe to ignore unless you explicitly run them):
+- `train_wo_yaml.py`, `train.yaml`, `parameters.yaml`, `geneformer_prep.sh` (install is skipped), older helper scripts.
+
 ## Recommended workflow
 
 Test locally first (fast iteration), then switch to running from GitHub.

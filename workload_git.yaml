@@ -3,25 +3,56 @@ experiment_name: geneformer-pretrain-sgcli-git-test
 workspace:
   host: https://e2-dogfood.staging.cloud.databricks.com/
 
-# Option 1: run from GitHub (use this after local testing is stable)
 git_repo: https://github.com/hengrumay/composer_geneformer_pretrain.git
 git_branch: mmt_sgc_cli_test
 
 environment:
-  # Keep this minimal; commands.sh installs deps after clone.
+  # Keep minimal; commands.sh installs deps after clone.
   dependencies: requirements.yaml
   env_variables:
-    NCCL_DEBUG: "WARN"
-    # Used by commands.sh to switch between single-node and multi-node torchrun.
+    # --- MLflow + logging ---
+    MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
+    LOG_CHECKPOINTS_TO_MLFLOW: "true"
+
+    # --- Torchrun topology toggle ---
+    # Default single-node 8×GPU:
     NNODES: "1"
+    #NPROC_PER_NODE: "8"   # optional; commands.sh auto-detects GPUs
+    #
+    # Multi-node example 1×GPU per host (8 hosts):
+    #NNODES: "8"
+    #NPROC_PER_NODE: "1"
+    #
+    # Multi-node example 2×GPU per host (8 hosts = 16 GPUs):
+    #NNODES: "8"
+    #NPROC_PER_NODE: "2"
+    #
+    MASTER_PORT: "29400"
+
+    # --- NCCL/Distributed defaults (socket transport) ---
+    NCCL_DEBUG: "WARN"
+    NCCL_NET: "Socket"
+    NCCL_IB_DISABLE: "1"
+    NCCL_SOCKET_IFNAME: "eth"
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"
+    NCCL_TIMEOUT: "1800"
+    TORCH_DISTRIBUTED_DEBUG: "DETAIL"
+    TORCH_NCCL_BLOCKING_WAIT: "1"
+    TORCH_DIST_INIT_BARRIER_TIMEOUT: "1800"
+
+    # --- Dataloader workers ---
+    DATALOADER_WORKERS: "4"
+
+    # Expose GPU type for run_name tagging in train.py
+    GPU_TYPE: "h100"
 
 compute:
-  # A10 has 1 GPU per node in this sgcli wheel; gpus==nodes for A10.
-  gpus: 1
-  gpu_type: a10
+  # Default: single H100 box with 8 GPUs (NNODES=1). For multi-node H100, use multiples of 8 GPUs.
+  gpus: 8
+  gpu_type: h100
+  # For A10 single-node, you can override to gpus: 1, gpu_type: a10.
+  # For A10 multi-node (1 GPU per host), set gpus to the node count and NNODES accordingly.
 
-# Run the repo's commands.sh directly (it should be compatible with both A10 and H100).
 bash_script: commands.sh
 
 max_retries: 0
-
