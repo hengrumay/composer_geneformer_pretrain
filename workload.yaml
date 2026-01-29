@@ -17,7 +17,7 @@ environment:
 
     # --- Torchrun topology toggle (pick one preset) ---
     # 1) Single-node 8×GPU (default):
-    NNODES: "1"
+    #NNODES: "1"
     #NPROC_PER_NODE: "8"   # optional; commands.sh auto-detects GPUs
     #
     # 2) Multi-node 1×GPU per host (example 8 hosts = 8 GPUs total):
@@ -25,8 +25,8 @@ environment:
     #NPROC_PER_NODE: "1"
     #
     # 3) Multi-node 2×GPU per host (example 8 hosts × 2 GPUs = 16 GPUs total):
-    #NNODES: "8"
-    #NPROC_PER_NODE: "2"
+    NNODES: "8"
+    NPROC_PER_NODE: "2"
     MASTER_PORT: "29400"
 
     # --- NCCL/Distributed (safe defaults for socket transport) ---
@@ -44,9 +44,8 @@ environment:
     DATALOADER_WORKERS: "4"
 
 compute:
-  # Default: single H100 box with 8 GPUs (NNODES=1).
-  # If you switch to multi-node 1×GPU hosts, set NNODES accordingly and ensure the backend provisions enough hosts.
-  gpus: 8
+  # Multi-node 8 hosts × 2 GPUs each (total 16 GPUs). Adjust if you change NNODES/NPROC_PER_NODE.
+  gpus: 16
   gpu_type: h100
 
 bash_script: sgcli_entrypoint.sh
