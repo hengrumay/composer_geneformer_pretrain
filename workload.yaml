@@ -28,9 +28,9 @@ environment:
     #NNODES: "8"
     #NPROC_PER_NODE: "2"
     #
-    # 4) Sanity probe: 2 nodes × 2 GPUs (total 4 GPUs)
+    # 4) Sanity probe: 2 nodes × 4 GPUs each (total 8 GPUs; minimum valid for h100)
     NNODES: "2"
-    NPROC_PER_NODE: "2"
+    NPROC_PER_NODE: "4"
     MASTER_PORT: "29400"
 
     # Expose GPU type to the training script for run_name tagging.
@@ -51,8 +51,8 @@ environment:
     DATALOADER_WORKERS: "4"
 
 compute:
-  # Sanity probe: expect 2 nodes × 2 GPUs each (total 4 GPUs). Adjust as needed.
-  gpus: 4
+  # Sanity probe: expect 2 nodes × 4 GPUs each (total 8 GPUs). Adjust as needed (must be multiples of 8 for h100).
+  gpus: 8
   gpu_type: h100
 
 bash_script: sgcli_entrypoint.sh
