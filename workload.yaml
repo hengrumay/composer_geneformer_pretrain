@@ -16,10 +16,12 @@ environment:
     # If true, train.py will upload any saved checkpoints as MLflow artifacts (rank 0 only).
     LOG_CHECKPOINTS_TO_MLFLOW: "true"
 
-    # Multi-worker torchrun mode (like the helloworld example):
-    # - scg-cli/serverless will inject MASTER_ADDR, MASTER_PORT, NODE_RANK.
-    # - commands.sh uses these and runs torchrun --nnodes=$NNODES --nproc_per_node=1 ...
-    NNODES: "8"
+    # Toggle NNODES here:
+    # - Single node with 8 GPUs (default): NNODES=1 (torchrun --standalone, NPROC_PER_NODE auto-detects to 8)
+    # - Multi-node with 1 GPU per host: set NNODES=8 (ensure cluster actually has 8 hosts)
+    NNODES: "1"
+    #NNODES: "8"     # uncomment for multi-node
+    #NPROC_PER_NODE: "1"  # optional: fix per-host procs if you use multi-node 1×GPU hosts
     MASTER_PORT: "29400"
 
     # Keep DataLoader workers modest per rank (read in train.py)
@@ -35,9 +37,8 @@ environment:
     # DATALOADER_WORKERS: "4"
 
 compute:
-  # Intention: 8 workers × 1 GPU each (A10)
+  # Intention: single H100 box with 8 GPUs (NNODES=1), or 8 hosts × 1 GPU each if NNODES=8.
   gpus: 8
-  # gpu_type: a10
   gpu_type: h100
 
 bash_script: sgcli_entrypoint.sh
