@@ -30,7 +30,7 @@ environment:
     #
     # 4) Sanity probe: 2 nodes × 4 GPUs each (total 8 GPUs; minimum valid for h100)
     NNODES: "2"
-    NPROC_PER_NODE: "4"
+    NPROC_PER_NODE: "8"
     MASTER_PORT: "29400"
 
     # Expose GPU type to the training script for run_name tagging.
