@@ -1,0 +1,44 @@
+experiment_name: geneformer-sgcli-mmt-test-h100
+
+workspace:
+  host: https://e2-dogfood.staging.cloud.databricks.com/
+
+repo_snapshot:
+  local_repo_path: /Users/may.merkletan/Documents/Projects/Merck/composer_geneformer_pretrain
+
+environment:
+  # Keep using the same minimal bootstrap; commands.sh installs the rest.
+  dependencies: requirements.yaml
+  env_variables:
+    MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
+    # If true, train.py will upload any saved checkpoints as MLflow artifacts (rank 0 only).
+    LOG_CHECKPOINTS_TO_MLFLOW: "true"
+
+    # Multi-worker torchrun mode:
+    # - sgcli will inject MASTER_ADDR, NODE_RANK.
+    # - commands.sh uses these and runs torchrun --nnodes=$NNODES --nproc_per_node=1 ...
+    NNODES: "8"
+    MASTER_PORT: "29400"
+
+    # Keep DataLoader workers modest per rank (read in train.py)
+    DATALOADER_WORKERS: "4"
+
+    # --- NCCL settings for multi-node H100 training ---
+    NCCL_DEBUG: "INFO"
+    NCCL_SOCKET_IFNAME: "eth"
+    NCCL_IB_DISABLE: "1"
+    NCCL_ASYNC_ERROR_HANDLING: "1"
+    NCCL_TIMEOUT: "1800"
+
+    # --- PyTorch distributed settings ---
+    TORCH_DISTRIBUTED_DEBUG: "DETAIL"
+    TORCH_NCCL_BLOCKING_WAIT: "1"
+    TORCH_DIST_INIT_BARRIER_TIMEOUT: "1800"
+
+compute:
+  # Intention: 8 workers × 1 GPU each (H100)
+  gpus: 8
+  gpu_type: h100
+
+bash_script: sgcli_entrypoint.sh
+max_retries: 0
