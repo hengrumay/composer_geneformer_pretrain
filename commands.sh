@@ -188,6 +188,14 @@ else
     python train.py parameters_sgcli.yaml
   else
     echo ">>> Single-node torchrun (--standalone)"
-    torchrun --standalone --nproc_per_node="${NPROC_PER_NODE}" train.py parameters_sgcli.yaml
+    TORCHRUN_EXTRA_ARGS=()
+    if torchrun --help 2>/dev/null | grep -q -- '--tee'; then
+      TORCHRUN_EXTRA_ARGS+=(--tee 3)
+    fi
+    if torchrun --help 2>/dev/null | grep -q -- '--log_dir'; then
+      TORCHRUN_EXTRA_ARGS+=(--log_dir /tmp/torchrun_logs)
+    fi
+
+    torchrun --standalone --nproc_per_node="${NPROC_PER_NODE}" "${TORCHRUN_EXTRA_ARGS[@]}" train.py parameters_sgcli.yaml
   fi
 fi
