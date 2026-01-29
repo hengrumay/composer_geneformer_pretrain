@@ -15,12 +15,18 @@ environment:
     MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
     LOG_CHECKPOINTS_TO_MLFLOW: "true"
 
-    # --- Torchrun topology toggle ---
-    # Single-node 8×GPU (default): set NNODES=1 (commands.sh auto-detects NPROC_PER_NODE=8)
+    # --- Torchrun topology toggle (pick one preset) ---
+    # 1) Single-node 8×GPU (default):
     NNODES: "1"
-    # Multi-node 1×GPU per host: uncomment below AND ensure the cluster actually provisions N hosts.
+    #NPROC_PER_NODE: "8"   # optional; commands.sh auto-detects GPUs
+    #
+    # 2) Multi-node 1×GPU per host (example 8 hosts = 8 GPUs total):
     #NNODES: "8"
     #NPROC_PER_NODE: "1"
+    #
+    # 3) Multi-node 2×GPU per host (example 8 hosts × 2 GPUs = 16 GPUs total):
+    #NNODES: "8"
+    #NPROC_PER_NODE: "2"
     MASTER_PORT: "29400"
 
     # --- NCCL/Distributed (safe defaults for socket transport) ---

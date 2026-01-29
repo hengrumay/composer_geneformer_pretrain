@@ -103,9 +103,14 @@ if [ -z "${NPROC_PER_NODE:-}" ]; then
   fi
 fi
 
-# If we are doing multi-worker A10 torchrun, force 1 proc per node.
-if [ "${NNODES}" != "1" ]; then
-  NPROC_PER_NODE="1"
+# For multi-node, default to 1 process per visible GPU (auto-detected above).
+# You can still override NPROC_PER_NODE explicitly via env.
+if [ "${NNODES}" != "1" ] && [ -z "${NPROC_PER_NODE:-}" ]; then
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    NPROC_PER_NODE="$(nvidia-smi -L | wc -l | tr -d ' ')"
+  else
+    NPROC_PER_NODE="1"
+  fi
 fi
 
 echo ">>> Using NNODES=${NNODES} NODE_RANK=${NODE_RANK} NPROC_PER_NODE=${NPROC_PER_NODE}"
