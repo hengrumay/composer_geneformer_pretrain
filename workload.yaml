@@ -37,7 +37,8 @@ environment:
 compute:
   # Intention: 8 workers × 1 GPU each (A10)
   gpus: 8
-  gpu_type: a10
+  # gpu_type: a10
+  gpu_type: h100
 
 bash_script: sgcli_entrypoint.sh
 max_retries: 0
