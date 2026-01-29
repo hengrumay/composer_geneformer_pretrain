@@ -24,7 +24,7 @@ environment:
     #NNODES: "8"
     #NPROC_PER_NODE: "1"
     #
-    # 3) Multi-node 2×GPU per host (example 8 hosts × 2 GPUs = 16 GPUs total):
+    # 3) Multi-node 8×GPU per host (example 8 hosts × 2 GPUs = 16 GPUs total):
     NNODES: "2"
     NPROC_PER_NODE: "8"
     #
@@ -52,7 +52,7 @@ environment:
 
 compute:
   # Default single-node H100: set gpus to 8 (or multiples of 8 if you switch to multi-node).
-  gpus: 8
+  gpus: 16 #8
   gpu_type: h100
 
 bash_script: sgcli_entrypoint.sh
