@@ -51,7 +51,7 @@ environment:
     DATALOADER_WORKERS: "4"
 
 compute:
-  # Sanity probe: expect 2 nodes × 4 GPUs each (total 8 GPUs). Adjust as needed (must be multiples of 8 for h100).
+  # Default single-node H100: set gpus to 8 (or multiples of 8 if you switch to multi-node).
   gpus: 8
   gpu_type: h100
 
