@@ -256,7 +256,8 @@ def main(cfg: DictConfig):
         data_local = False
 
     # output directories
-    save_folder = cfg.get("save_folder", None)
+    base_save_folder = cfg.get("save_folder", None)
+    save_folder = base_save_folder
     save_interval = cfg.get("save_interval", None)
     save_overwrite = cfg.get("save_overwrite", False)
     save_num_checkpoints_to_keep = cfg.get("save_num_checkpoints_to_keep", 1)
@@ -405,7 +406,7 @@ def main(cfg: DictConfig):
             SaveBestCheckpointCallback(
                 metric_name=best_cfg.get("metric_name", "loss/eval/total"),
                 mode=best_cfg.get("mode", "min"),
-                save_folder=cfg.get("save_folder", None),
+                save_folder=save_folder,
                 best_filename=best_cfg.get("best_filename", "best.pt"),
             )
         )
@@ -550,7 +551,7 @@ def main(cfg: DictConfig):
         schedulers=[scheduler],
         device=cfg.get("device", "gpu"),
         device_train_microbatch_size=cfg.get("device_train_microbatch_size","auto"),
-        save_folder=cfg.get("save_folder", None),
+        save_folder=save_folder,
         save_interval=cfg.get("save_interval", "5ep"),
         save_overwrite=cfg.get("save_overwrite", False),
         save_num_checkpoints_to_keep=cfg.get("save_num_checkpoints_to_keep",1),
