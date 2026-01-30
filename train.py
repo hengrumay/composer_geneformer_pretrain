@@ -210,6 +210,80 @@ def main(cfg: DictConfig):
         f"LOCAL_RANK={local_rank} MASTER_ADDR={master_addr} MASTER_PORT={master_port}"
     )
 
+    # Hard-fail if the provisioned topology does not match the expected H100 setup.
+    # Set EXPECT_NNODES and EXPECT_GPUS_PER_NODE (and optionally EXPECT_GPU_TYPE) to enforce.
+    expected_nodes = int(os.getenv("EXPECT_NNODES", "0") or "0")
+    expected_gpn = int(os.getenv("EXPECT_GPUS_PER_NODE", "0") or "0")
+    expected_gpu_type = (os.getenv("EXPECT_GPU_TYPE") or "").strip().lower()
+    gpu_type_env = (os.getenv("GPU_TYPE") or os.getenv("SERVERLESS_GPU_GPU_TYPE") or "").strip().lower()
+
+    if torch.cuda.is_available():
+        device_count = torch.cuda.device_count()
+    else:
+        device_count = 0
+
+    if expected_nodes and expected_gpn:
+        expected_world_size = expected_nodes * expected_gpn
+        if world_size and world_size != expected_world_size:
+            raise RuntimeError(
+                f"Provisioned world_size={world_size}, expected {expected_world_size} "
+                f"(EXPECT_NNODES={expected_nodes} * EXPECT_GPUS_PER_NODE={expected_gpn})."
+            )
+        if device_count and device_count != expected_gpn:
+            raise RuntimeError(
+                f"Provisioned GPUs on this node={device_count}, expected {expected_gpn} "
+                f"(EXPECT_GPUS_PER_NODE)."
+            )
+
+    if expected_gpu_type and gpu_type_env and gpu_type_env != expected_gpu_type:
+        raise RuntimeError(
+            f"Provisioned GPU_TYPE={gpu_type_env}, expected {expected_gpu_type} (EXPECT_GPU_TYPE)."
+        )
+
+    # Build a unique run name (includes gpu tag, nodes, gpus-per-node, world size, optional timestamp).
+    # This keeps checkpoints/logs partitioned per launch.
+    base_run_name = cfg.get("run_name", None)
+    run_name = base_run_name
+    if base_run_name:
+        gpu_tag = (
+            os.getenv("GPU_TYPE")
+            or os.getenv("SERVERLESS_GPU_GPU_TYPE")
+            or ""
+        ).strip()
+        nproc_per_node_str = (os.getenv("NPROC_PER_NODE") or "").strip()
+        nnodes_str = (os.getenv("NNODES") or "").strip()
+
+        pieces = [base_run_name]
+        if gpu_tag:
+            pieces.append(f"gpu{gpu_tag}")
+
+        nnodes = None
+        gpn = None
+        try:
+            nnodes = int(nnodes_str) if nnodes_str else None
+        except Exception:
+            nnodes = None
+        try:
+            gpn = int(nproc_per_node_str) if nproc_per_node_str else None
+        except Exception:
+            gpn = None
+        if gpn is None and nnodes and world_size and world_size % nnodes == 0:
+            gpn = world_size // nnodes
+
+        if nnodes:
+            pieces.append(f"nn{nnodes}")
+        if gpn:
+            pieces.append(f"gpn{gpn}")
+        if world_size:
+            pieces.append(f"ws{world_size}")
+        if nproc_per_node_str:
+            pieces.append(f"ppn{nproc_per_node_str}")
+        if cfg.get("run_name_append_timestamp", True):
+            pieces.append(datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S"))
+        run_name = "-".join(pieces)
+        if rank == 0:
+            print(f"[run_name] {run_name}")
+
     seed_val = cfg.seed_val
     random.seed(seed_val)
     np.random.seed(seed_val)
@@ -240,6 +314,8 @@ def main(cfg: DictConfig):
 
     # output directories
     save_folder = cfg.get("save_folder", None)
+    if cfg.get("save_folder_append_run_name", False) and save_folder and run_name:
+        save_folder = os.path.join(save_folder, run_name)
     save_interval = cfg.get("save_interval", None)
     save_overwrite = cfg.get("save_overwrite", False)
     save_num_checkpoints_to_keep = cfg.get("save_num_checkpoints_to_keep", 1)
@@ -534,7 +610,7 @@ def main(cfg: DictConfig):
 
     # Create Trainer Object
     trainer = Trainer(
-        #run_name=cfg.run_name,
+        run_name=run_name,
         model=composer_model, 
         algorithms=algorithms,
         train_dataloader=train_dataloader,    
@@ -545,7 +621,7 @@ def main(cfg: DictConfig):
         schedulers=[scheduler],
         device=cfg.get("device", "gpu"),
         device_train_microbatch_size=cfg.get("device_train_microbatch_size","auto"),
-        save_folder=cfg.get("save_folder", None),
+        save_folder=save_folder,
         save_interval=cfg.get("save_interval", "5ep"),
         save_overwrite=cfg.get("save_overwrite", False),
         save_num_checkpoints_to_keep=cfg.get("save_num_checkpoints_to_keep",1),
