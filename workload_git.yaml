@@ -1,4 +1,4 @@
-experiment_name: geneformer-pretrain-sgcli-git-test
+experiment_name: geneformer-sgcli-mmt-test
 
 workspace:
   host: https://e2-dogfood.staging.cloud.databricks.com/
@@ -7,29 +7,34 @@ git_repo: https://github.com/hengrumay/composer_geneformer_pretrain.git
 git_branch: mmt_sgc_cli_test
 
 environment:
-  # Keep minimal; commands.sh installs deps after clone.
   dependencies: requirements.yaml
   env_variables:
     # --- MLflow + logging ---
     MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
     LOG_CHECKPOINTS_TO_MLFLOW: "true"
 
-    # --- Torchrun topology toggle ---
-    # Default single-node 8×GPU:
-    NNODES: "1"
-    #NPROC_PER_NODE: "8"   # optional; commands.sh auto-detects GPUs
+    # --- Torchrun topology toggle (pick one preset) ---
+    # 1) Single-node 8×GPU (default):
+    # NNODES: "1"
+    # NPROC_PER_NODE: "8"   # optional; commands.sh auto-detects GPUs
     #
-    # Multi-node example 1×GPU per host (8 hosts):
+    # 2) Multi-node 1×GPU per host (example 8 hosts = 8 GPUs total):
     #NNODES: "8"
     #NPROC_PER_NODE: "1"
     #
-    # Multi-node example 2×GPU per host (8 hosts = 16 GPUs):
-    #NNODES: "8"
-    #NPROC_PER_NODE: "2"
+    # 3) Multi-node 8×GPU per host (example 8 hosts × 2 GPUs = 16 GPUs total):
+    NNODES: "2"
+    NPROC_PER_NODE: "8"
     #
+    # 4) Sanity probe: 2 nodes × 4 GPUs each (total 8 GPUs; minimum valid for h100)
+    #NNODES: "8"
+    # NPROC_PER_NODE: "2"
     MASTER_PORT: "29400"
 
-    # --- NCCL/Distributed defaults (socket transport) ---
+    # Expose GPU type to the training script for run_name tagging.
+    GPU_TYPE: "h100"
+
+    # --- NCCL/Distributed (safe defaults for socket transport) ---
     NCCL_DEBUG: "WARN"
     NCCL_NET: "Socket"
     NCCL_IB_DISABLE: "1"
@@ -43,16 +48,10 @@ environment:
     # --- Dataloader workers ---
     DATALOADER_WORKERS: "4"
 
-    # Expose GPU type for run_name tagging in train.py
-    GPU_TYPE: "h100"
-
 compute:
-  # Default: single H100 box with 8 GPUs (NNODES=1). For multi-node H100, use multiples of 8 GPUs.
-  gpus: 8
+  # Default single-node H100: set gpus to 8 (or multiples of 8 if you switch to multi-node).
+  gpus: 16 #8
   gpu_type: h100
-  # For A10 single-node, you can override to gpus: 1, gpu_type: a10.
-  # For A10 multi-node (1 GPU per host), set gpus to the node count and NNODES accordingly.
 
-bash_script: commands.sh
-
+bash_script: sgcli_entrypoint.sh
 max_retries: 0

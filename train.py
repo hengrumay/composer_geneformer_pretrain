@@ -210,6 +210,17 @@ def main(cfg: DictConfig):
         f"LOCAL_RANK={local_rank} MASTER_ADDR={master_addr} MASTER_PORT={master_port}"
     )
 
+    # Validate multi-node env if requested.
+    try:
+        nnodes_env = int(os.getenv("NNODES", "1") or "1")
+    except Exception:
+        nnodes_env = 1
+    if nnodes_env > 1:
+        if not master_addr or not master_port:
+            raise RuntimeError("Multi-node requested (NNODES>1) but MASTER_ADDR/MASTER_PORT not set.")
+        if os.getenv("NODE_RANK") in (None, ""):
+            raise RuntimeError("Multi-node requested (NNODES>1) but NODE_RANK not set.")
+
     # Hard-fail if the provisioned topology does not match the expected H100 setup.
     # Set EXPECT_NNODES and EXPECT_GPUS_PER_NODE (and optionally EXPECT_GPU_TYPE) to enforce.
     expected_nodes = int(os.getenv("EXPECT_NNODES", "0") or "0")
