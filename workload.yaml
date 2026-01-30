@@ -14,6 +14,10 @@ environment:
     # --- MLflow + logging ---
     MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING: "true"
     LOG_CHECKPOINTS_TO_MLFLOW: "true"
+    # Enforce expected topology (fail fast if not met)
+    EXPECT_NNODES: "2"
+    EXPECT_GPUS_PER_NODE: "8"
+    EXPECT_GPU_TYPE: "h100"
 
     # --- Torchrun topology toggle (pick one preset) ---
     # 1) Single-node 8×GPU (default):
