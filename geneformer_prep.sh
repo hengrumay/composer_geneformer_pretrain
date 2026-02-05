@@ -10,6 +10,12 @@ for i in 1 2 3; do
   echo "Clone attempt $i failed, retrying in 15s..."
   sleep 15
 done
+
+if [ ! -d "Geneformer" ]; then
+  echo "ERROR: Failed to clone Geneformer after 3 attempts"
+  exit 1
+fi
+
 cd Geneformer
 git checkout b07f4b1e8893a0923a8fde223fe3b5a60b976d99
 pip install .
