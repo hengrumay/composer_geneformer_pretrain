@@ -58,4 +58,3 @@ command: |-
   sh commands.sh
   export MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING=true
   composer train.py parameters.yaml
-  run train.py parameters.yaml
