@@ -28,7 +28,7 @@ environment:
   #   EXPECT_NNODES: "8"
   #   EXPECT_GPUS_PER_NODE: "1"
   #   EXPECT_GPU_TYPE: "a10"
-  # dependencies: dependencies.yaml
+  dependencies: dependencies.yaml
 compute:
   # gpus: 16
   # gpu_type: h100
@@ -44,7 +44,11 @@ code_source:
     # repo_path: /Users/may.merkletan/Documents/Projects/Merck/composer_geneformer_pretrain_ref/composer_geneformer_pretrain/
     repo_path: /Users/may.merkletan/Documents/Projects/Merck/sgc_cli/composer_geneformer_pretrain/
 command: |-
-  echo ">>> Current directory: $(pwd)"
+  echo ">>> Looking for code directory..."
+  echo ">>> HOME contents:"
+  ls -la $HOME
+  cd $HOME/composer_geneformer_pretrain
+  echo ">>> Now in: $(pwd)"
   echo ">>> Directory contents:"
   ls -la
   echo ">>> Starting training"
