@@ -6,7 +6,8 @@
 # - image: Extra inputs are not permitted
 # - integrations: Extra inputs are not permitted
 # - scheduling: Extra inputs are not permitted
-experiment_name: sgcli_002_geneformer_mmt_h100_n16_composer
+# experiment_name: sgcli_002_geneformer_mmt_h100_n16_composer
+experiment_name: sgcli_002_geneformer_mmt_a10_n8_composer
 environment:
   env_variables:
     # NCCL settings for multi-node H100 training
@@ -20,16 +21,19 @@ environment:
     TORCH_NCCL_BLOCKING_WAIT: "1"        # Use blocking wait for better error reporting
     # Increase TCP store timeout for multi-node coordination
     TORCH_DIST_INIT_BARRIER_TIMEOUT: "1800"
-    # Topology guards | fast fail if not matching
-    EXPECT_NNODES: "2"
-    EXPECT_GPUS_PER_NODE: "8"
-    EXPECT_GPU_TYPE: "h100"
-  dependencies: dependencies.yaml
+    ## Topology guards | fast fail if not matching
+    # EXPECT_NNODES: "2"
+    # EXPECT_GPUS_PER_NODE: "8"
+    # EXPECT_GPU_TYPE: "h100"
+  #   EXPECT_NNODES: "8"
+  #   EXPECT_GPUS_PER_NODE: "1"
+  #   EXPECT_GPU_TYPE: "a10"
+  # dependencies: dependencies.yaml
 compute:
-  gpus: 16
-  gpu_type: h100
-  # gpus: 8
-  # gpu_type: a10
+  # gpus: 16
+  # gpu_type: h100
+  gpus: 8
+  gpu_type: a10
 max_retries: 1
 code_source:
   type: snapshot
