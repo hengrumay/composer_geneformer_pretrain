@@ -52,8 +52,9 @@ command: |-
   echo ">>> Now in: $(pwd)"
   echo ">>> Directory contents:"
   ls -la
+  python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
   echo ">>> Starting training"
   sh commands.sh
   export MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING=true
   composer train.py parameters.yaml
-# run train.py parameters.yaml
+  run train.py parameters.yaml
