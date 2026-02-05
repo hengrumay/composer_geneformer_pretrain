@@ -40,10 +40,11 @@ code_source:
     # repo_path: /Users/may.merkletan/Documents/Projects/Merck/composer_geneformer_pretrain_ref/composer_geneformer_pretrain/
     repo_path: /Users/may.merkletan/Documents/Projects/Merck/sgc_cli/composer_geneformer_pretrain/
 command: |-
-  cd $HOME/composer_geneformer_pretrain/sgc_geneformer_actual
-  echo ">>> In actual training folder, starting training"
-  sh commands.sh
+  echo ">>> Current directory: $(pwd)"
+  echo ">>> Directory contents:"
+  ls -la
   echo ">>> Starting training"
+  sh commands.sh
   export MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING=true
   composer train.py parameters.yaml
 # run train.py parameters.yaml
