@@ -1,30 +1,17 @@
 version: "4"
 dependencies:
-  - mosaicml[mlflow]==0.23.5
-  - mosaicml-streaming==0.8.0
+  # Testing with PyTorch 2.8 - upgraded mosaicml to latest for compatibility
+  - torch==2.8.0
+  - torchvision>=0.19.0
+  - mosaicml[mlflow]==0.32.1
+  - mosaicml-streaming==0.9.0
   - transformers==4.44.0
   - datasets==2.21.0
   - boto3
   - omegaconf
   - tqdm
-#- transformers
-#- accelerate
 
-
-# Based on the previous run logs, mosaicml==0.23.5 installed torch 2.3.1:
-# torch-2.3.1 torchvision-0.18.1
-
-# This makes sense because:
-# mosaicml 0.23.5 was released around mid-2024
-# PyTorch 2.3.1 was the stable version at that time
-# The CUDA 12.1 libraries were also installed (nvidia-cuda-*-cu12-12.1.*)
-
-### current torch dependencies
-# Collecting torchmetrics<1.3.3,>=0.10.0 (from mosaicml==0.23.5->mosaicml[mlflow]==0.23.5)
-#   Downloading torchmetrics-1.3.2-py3-none-any.whl.metadata (19 kB)
-# Collecting torch-optimizer<0.4,>=0.3.0 (from mosaicml==0.23.5->mosaicml[mlflow]==0.23.5)
-#   Downloading torch_optimizer-0.3.0-py3-none-any.whl.metadata (55 kB)
-# Collecting torchvision<0.18.2,>=0.13.1 (from mosaicml==0.23.5->mosaicml[mlflow]==0.23.5)
-#   Downloading torchvision-0.18.1-cp312-cp312-manylinux1_x86_64.whl.metadata (6.6 kB)
-# Collecting torch<2.3.2,>=2.1.2 (from mosaicml==0.23.5->mosaicml[mlflow]==0.23.5)
-#   Downloading torch-2.3.1-cp312-cp312-manylinux1_x86_64.whl.metadata (26 kB)
+# Previous versions (mmt_sgcli_test002 branch):
+# - mosaicml[mlflow]==0.23.5 (requires torch<2.3.2,>=2.1.2)
+# - mosaicml-streaming==0.8.0
+# - torch 2.3.1 (installed automatically)
