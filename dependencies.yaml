@@ -9,3 +9,12 @@ dependencies:
   - tqdm
 #- transformers
 #- accelerate
+
+
+# Based on the previous run logs, mosaicml==0.23.5 installed torch 2.3.1:
+# torch-2.3.1 torchvision-0.18.1
+
+# This makes sense because:
+# mosaicml 0.23.5 was released around mid-2024
+# PyTorch 2.3.1 was the stable version at that time
+# The CUDA 12.1 libraries were also installed (nvidia-cuda-*-cu12-12.1.*)
