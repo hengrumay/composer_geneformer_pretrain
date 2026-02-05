@@ -3,9 +3,13 @@ curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.s
 apt-get install git-lfs
 git lfs install
 
-#install geneformer
+#install geneformer (with retry for transient errors)
 cd /
-git clone https://huggingface.co/ctheodoris/Geneformer
+for i in 1 2 3; do
+  git clone https://huggingface.co/ctheodoris/Geneformer && break
+  echo "Clone attempt $i failed, retrying in 15s..."
+  sleep 15
+done
 cd Geneformer
 git checkout b07f4b1e8893a0923a8fde223fe3b5a60b976d99
 pip install .
