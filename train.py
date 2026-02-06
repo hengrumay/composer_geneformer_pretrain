@@ -1,3 +1,4 @@
+# Databricks notebook source
 
 
 ##1 Set parameters
@@ -287,7 +288,8 @@ def main(cfg: DictConfig):
         #load_weights_only=cfg.get("load_weights_only", False),
         python_log_level=cfg.get("python_log_level", None),
         seed=seed_val,        
-        fsdp_config = cfg.get("fsdp_config", None),
+        # fsdp_config removed - not supported in Composer 0.32+ (use parallelism_config instead)
+        # fsdp_config = cfg.get("fsdp_config", None),
         loggers=loggers,
         callbacks=callbacks,
 
