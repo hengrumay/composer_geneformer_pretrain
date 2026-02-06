@@ -39,7 +39,7 @@ compute:
   gpu_type: h100  #Note: H100s may take longer to provision than A10s.
   # gpus: 8
   # gpu_type: a10
-max_retries: 1
+max_retries: 1  # force new snapshot
 code_source:
   type: snapshot
   snapshot:
