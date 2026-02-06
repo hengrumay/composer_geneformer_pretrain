@@ -13,6 +13,8 @@ experiment_name: sgcli_geneformer_torch27_test_h100_n16
 # experiment_name: sgcli_002_geneformer_mmt_a10_n8_composer
 environment:
   env_variables:
+    # Experiment name for checkpoint folder (derived from experiment_name)
+    EXPT_NAME: ${experiment_name}
     # NCCL settings for multi-node H100 training
     NCCL_DEBUG: "INFO"
     NCCL_SOCKET_IFNAME: "eth"            # Use eth interfaces (auto-match eth0, eth1, etc.)

@@ -237,6 +237,31 @@ def main(cfg: DictConfig):
     #callbacks.append(RaiseErrorOnEpoch7())
     ##############################
 
+    # Construct save_folder from UC variables with datetime stamp
+    # Only construct if UC variables are provided; otherwise fall back to explicit save_folder
+    if cfg.get("uc_catalog") and cfg.get("uc_schema") and cfg.get("uc_volume"):
+        # Get experiment name from environment (set in train.yaml) or fall back to config
+        expt_name = os.environ.get("EXPT_NAME", cfg.get("expt_name", "expt"))
+        run_name = cfg.get("run_name", "run")
+        # Generate datetime string for unique run folder
+        run_datetime = datetime.datetime.now(pytz.UTC).strftime("%Y%m%d_%H%M%S")
+        run_folder_name = f"{expt_name}_{run_name}_{run_datetime}"
+        
+        uc_subfolders = cfg.get("uc_subfolders", "")
+        if uc_subfolders:
+            save_folder = f"/Volumes/{cfg.uc_catalog}/{cfg.uc_schema}/{cfg.uc_volume}/{uc_subfolders}/checkpoints/{run_folder_name}"
+        else:
+            save_folder = f"/Volumes/{cfg.uc_catalog}/{cfg.uc_schema}/{cfg.uc_volume}/checkpoints/{run_folder_name}"
+        
+        print(f"Checkpoint save_folder: {save_folder}")
+    else:
+        # Fall back to explicit save_folder if UC variables not provided
+        save_folder = cfg.get("save_folder", None)
+        if save_folder:
+            print(f"Using explicit save_folder: {save_folder}")
+        else:
+            print("WARNING: No save_folder configured - checkpoints will not be saved!")
+
     # Create Trainer Object
     trainer = Trainer(
         #run_name=cfg.run_name,
@@ -250,7 +275,7 @@ def main(cfg: DictConfig):
         schedulers=[scheduler],
         device=cfg.get("device", "gpu"),
         device_train_microbatch_size=cfg.get("device_train_microbatch_size","auto"),
-        save_folder=cfg.get("save_folder", None),
+        save_folder=save_folder,
         save_interval=cfg.get("save_interval", "5ep"),
         save_overwrite=cfg.get("save_overwrite", False),
         save_num_checkpoints_to_keep=cfg.get("save_num_checkpoints_to_keep",1),

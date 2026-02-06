@@ -54,6 +54,14 @@ seed_val : 42
 run_name : geneformer_pretrain ##to add timestamp to the run name
 working_dir : /pretrain/temp  
 
+# Unity Catalog Volume paths for checkpoints
+uc_catalog: main
+uc_schema: srijit_nair
+uc_volume: geneformer
+uc_subfolders: tmp/geneformer_sgcli_mmt_test
+# expt_name is read from EXPT_NAME environment variable (set in train.yaml)
+# save_folder is constructed in train.py as: /Volumes/{uc_catalog}/{uc_schema}/{uc_volume}/{uc_subfolders}/checkpoints/{expt_name}_{run_name}_{datetime}
+
 # Streaming Dataset
 data_location : remote #local vs remote
 local_data_dir : /Geneformer/data
@@ -85,4 +93,5 @@ save_overwrite: True #overwrite checkpoint if exists
 #save_folder: "dbfs:/databricks/mlflow-tracking/{mlflow_experiment_id}/{mlflow_run_id}/artifacts/"
 #save_folder: "s3://srijit-nair-sandbox-bucket/geneformer/pretrain/demo/restart/checkpoints/full"
 # save_folder: "/Volumes/main/guanyu_chen/sgc/checkpoints/20eps/"
-save_folder: "/Volumes/main/srijit_nair/geneformer/tmp/geneformer_sgcli_mmt_test/checkpoints/"
+# save_folder: "/Volumes/main/srijit_nair/geneformer/tmp/geneformer_sgcli_mmt_test/checkpoints/"
+# save_folder is now constructed dynamically in train.py using UC variables above
