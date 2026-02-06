@@ -1,12 +1,10 @@
-mosaicml==0.23.5
-mosaicml[mlflow]==0.23.5
-mosaicml-streaming==0.8.0
+# Keep in sync with dependencies.yaml
+torch==2.7.0
+torchvision>=0.19.0
+mosaicml[mlflow]==0.32.1
+mosaicml-streaming==0.9.0
 transformers==4.44.0
 datasets==2.21.0
-triton
 boto3
 omegaconf
 tqdm
-
-
-
