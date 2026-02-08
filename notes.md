@@ -139,17 +139,24 @@ environment:
 
 ---
 
-## Background: Why the Original Sequence Didn't Work
+## Background: Understanding the Original Sequence
 
-The originally tested sequence:
+The originally tested sequence (which apparently worked):
 ```
 %pip install mlflow>=3.6.0 mosaicml==0.32.1
-%pip install mosaicml[mlflow]==0.32.1        # ← This downgrades mlflow!
+%pip install mosaicml[mlflow]==0.32.1        # ← Should downgrade mlflow?
 %pip install mosaicml[nlp,streaming]
 %pip install mosaicml-streaming==0.13.0
 %pip install --force-reinstall torch==2.8.0 ...
 ```
 
-**Problem**: Step 2 (`mosaicml[mlflow]==0.32.1`) has dependency `mlflow>=2.14.1,<3.0`, so pip **downgrades** mlflow from 3.6+ back to ~2.x.
+**Analysis**: Step 2 (`mosaicml[mlflow]==0.32.1`) has dependency `mlflow>=2.14.1,<3.0`. In theory, this should downgrade mlflow from 3.6+ back to ~2.x. However, pip's behavior can vary:
+- If mosaicml is already installed, pip might skip re-resolving dependencies
+- The actual mlflow version after these steps was unclear
 
-**Solution**: Don't use the `[mlflow]` extra. Install `mosaicml==0.32.1` and `mlflow>=3.6.0` as separate packages.
+**Our working solution**: Avoid ambiguity by:
+1. Installing `mosaicml==0.32.1` (no `[mlflow]` extra)
+2. Installing `mlflow>=3.6.0` separately
+3. Explicitly uninstalling and reinstalling torch 2.8.0
+
+This ensures we know exactly what versions are installed.
