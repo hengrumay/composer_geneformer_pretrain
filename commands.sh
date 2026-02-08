@@ -5,6 +5,12 @@ sh geneformer_prep.sh
 echo ">>> Installing dependencies"
 pip install -r requirements.txt
 
+echo ">>> Force-reinstalling PyTorch 2.8.0 (bypassing mosaicml constraint)"
+pip install --force-reinstall torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
+
+echo ">>> Verifying PyTorch version"
+python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+
 #create working dirrectory
 mkdir -p /pretrain/temp
 

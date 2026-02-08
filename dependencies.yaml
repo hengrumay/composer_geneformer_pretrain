@@ -1,17 +1,16 @@
 version: "4"
 dependencies:
-  # Testing with PyTorch 2.8 - using Composer from git main for torch 2.8 support
-  - torch==2.8.0
-  - torchvision>=0.20.0
-  # Install Composer from git main (0.32.1 requires torch<2.7.1)
-  - git+https://github.com/mosaicml/composer.git@main
-  - mlflow>=2.14.1
-  - mosaicml-streaming==0.9.0
+  # Testing with PyTorch 2.8 - tested approach:
+  # 1. Install mosaicml first (with its default torch)
+  # 2. Force-reinstall torch 2.8 afterwards (done in commands.sh)
+  - mlflow>=3.6.0
+  - mosaicml[mlflow]==0.32.1
+  - mosaicml-streaming==0.13.0
   - transformers==4.44.0
   - datasets==2.21.0
   - boto3
   - omegaconf
   - tqdm
 
-# Note: mosaicml 0.32.1 requires torch<2.7.1,>=2.6.0, so using git main for torch 2.8 support
-# This is experimental - may have stability issues
+# Note: torch 2.8 is force-reinstalled in commands.sh after mosaicml is installed
+# This bypasses mosaicml's torch<2.7.1 constraint
