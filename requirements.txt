@@ -1,6 +1,6 @@
 # Keep in sync with dependencies.yaml
 # Testing with PyTorch 2.8 - install mosaicml first, then force-reinstall torch 2.8 in commands.sh
-mlflow>=3.6.0
+# Note: mosaicml[mlflow]==0.32.1 requires mlflow<3.0
 mosaicml[mlflow]==0.32.1
 mosaicml-streaming==0.13.0
 transformers==4.44.0
