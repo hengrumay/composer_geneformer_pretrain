@@ -1,6 +1,8 @@
 # ============================================================
 # Config Version: 1.2.0 (2026-02-08)
 # Branch: mmt_test_torch28_mlflow36
+# sgcli Version: 0.0.2
+# conda-env: try-sgcli-002
 # ============================================================
 # Changelog:
 #   v1.2.0 - Test mlflow>=3.6.0 (no [mlflow] extra)
@@ -23,9 +25,6 @@
 # - image: Extra inputs are not permitted
 # - integrations: Extra inputs are not permitted
 # - scheduling: Extra inputs are not permitted
-
-# conda-env: (try-sgcli-002)
-# sgcli_version: 0.0.2
 
 # experiment_name: sgcli_geneformer_torch28_test_h100_n8
 # experiment_name: sgcli_geneformer_torch28_test_h100_n16
