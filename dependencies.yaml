@@ -1,10 +1,13 @@
 version: "4"
 dependencies:
-  # Testing with PyTorch 2.8 - tested approach:
-  # 1. Install mosaicml first (with its default torch and mlflow)
-  # 2. Force-reinstall torch 2.8 afterwards (done in commands.sh)
-  # Note: mosaicml[mlflow]==0.32.1 requires mlflow<3.0, so don't specify mlflow>=3.6
-  - mosaicml[mlflow]==0.32.1
+  # Testing mlflow>=3.6.0 with mosaicml (no [mlflow] extra)
+  # Strategy:
+  # 1. Install mosaicml WITHOUT [mlflow] extra (avoids mlflow<3.0 constraint)
+  # 2. Install mlflow>=3.6.0 separately
+  # 3. Force-reinstall torch 2.8 in commands.sh
+  # Note: Some mlflow integration features may not work (Composer 0.32.1 tested against mlflow<3.0)
+  - mosaicml==0.32.1
+  - mlflow>=3.6.0
   - mosaicml-streaming==0.13.0
   - transformers==4.44.0
   - datasets==2.21.0
