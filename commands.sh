@@ -6,10 +6,13 @@ echo ">>> Installing dependencies"
 pip install -r requirements.txt
 
 echo ">>> Force-reinstalling PyTorch 2.8.0 (bypassing mosaicml constraint)"
-pip install --force-reinstall torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
+# First uninstall existing torch to avoid conflicts
+pip uninstall -y torch torchvision torchaudio
+# Install torch 2.8.0 with CUDA 12.6 (matching Databricks environment)
+pip install --no-cache-dir torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu126
 
 echo ">>> Verifying PyTorch version"
-python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
 
 echo ">>> Verifying MLflow version"
 python -c "import mlflow; print(f'MLflow version: {mlflow.__version__}')"
