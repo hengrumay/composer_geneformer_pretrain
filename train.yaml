@@ -1,3 +1,20 @@
+# ============================================================
+# Config Version: 1.2.0 (2026-02-08)
+# Branch: mmt_test_torch28_mlflow36
+# ============================================================
+# Changelog:
+#   v1.2.0 - Test mlflow>=3.6.0 (no [mlflow] extra)
+#   v1.1.0 - PyTorch 2.8 + mosaicml[mlflow]==0.32.1
+#   v1.0.0 - PyTorch 2.7 baseline
+# ============================================================
+# Dependencies:
+#   - torch: 2.8.0 (force-reinstalled in commands.sh)
+#   - mosaicml: 0.32.1 (no [mlflow] extra)
+#   - mlflow: >=3.6.0
+#   - mosaicml-streaming: 0.13.0
+# ============================================================
+
+# sgcli field requirements (for reference):
 # - experiment_name: Field required
 # - environment: Field required
 # - compute.gpu_type: Field required
@@ -14,7 +31,8 @@
 # experiment_name: sgcli_geneformer_torch28_test_h100_n16
 # experiment_name: sgcli_geneformer_torch28_test_a10_n8
 # experiment_name: sgcli_geneformer_torch28_mlflow36_h100_n8
-experiment_name: sgcli_geneformer_torch28_mlflow36_a10_n8
+# experiment_name: sgcli_geneformer_torch28_mlflow36_a10_n8
+experiment_name: sgcli_geneformer_torch28_mlflow36_h100_n16
 # experiment_name: sgcli_002_geneformer_mmt_h100_n16_composer
 # experiment_name: sgcli_002_geneformer_mmt_a10_n8_composer
 environment:
@@ -41,12 +59,12 @@ environment:
     # EXPECT_GPU_TYPE: "a10"
   dependencies: dependencies.yaml
 compute:
-  gpus: 8
-  gpu_type: a10  # A10 for mlflow 3.6 test
+  gpus: 16
+  gpu_type: h100  # Multi-node H100 for mlflow 3.6 test
   # gpus: 8
-  # gpu_type: h100  # Single node for mlflow 3.6 test
-  # gpus: 16
-  # gpu_type: h100  # Multi-node
+  # gpu_type: a10  # A10 for mlflow 3.6 test
+  # gpus: 8
+  # gpu_type: h100  # Single node
 max_retries: 1  # force new snapshot
 code_source:
   type: snapshot
