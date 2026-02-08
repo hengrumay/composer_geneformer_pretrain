@@ -157,6 +157,6 @@ The originally tested sequence (which apparently worked):
 **Our working solution**: Avoid ambiguity by:
 1. Installing `mosaicml==0.32.1` (no `[mlflow]` extra)
 2. Installing `mlflow>=3.6.0` separately
-3. Explicitly uninstalling and reinstalling torch 2.8.0
+3. Explicitly uninstalling existing torch (e.g., 2.7.0) then installing torch 2.8.0
 
 This ensures we know exactly what versions are installed.
