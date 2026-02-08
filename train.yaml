@@ -26,14 +26,10 @@
 # - integrations: Extra inputs are not permitted
 # - scheduling: Extra inputs are not permitted
 
-# experiment_name: sgcli_geneformer_torch28_test_h100_n8
-# experiment_name: sgcli_geneformer_torch28_test_h100_n16
-# experiment_name: sgcli_geneformer_torch28_test_a10_n8
-# experiment_name: sgcli_geneformer_torch28_mlflow36_h100_n8
+
 # experiment_name: sgcli_geneformer_torch28_mlflow36_a10_n8
 experiment_name: sgcli_geneformer_torch28_mlflow36_h100_n16
-# experiment_name: sgcli_002_geneformer_mmt_h100_n16_composer
-# experiment_name: sgcli_002_geneformer_mmt_a10_n8_composer
+
 environment:
   env_variables:
     # Experiment name for checkpoint folder (derived from experiment_name)
