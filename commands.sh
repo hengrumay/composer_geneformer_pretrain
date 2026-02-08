@@ -11,6 +11,9 @@ pip install --force-reinstall torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0
 echo ">>> Verifying PyTorch version"
 python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
 
+echo ">>> Verifying MLflow version"
+python -c "import mlflow; print(f'MLflow version: {mlflow.__version__}')"
+
 #create working dirrectory
 mkdir -p /pretrain/temp
 
