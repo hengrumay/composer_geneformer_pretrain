@@ -7,7 +7,11 @@
 # - integrations: Extra inputs are not permitted
 # - scheduling: Extra inputs are not permitted
 
+# conda-env: (try-sgcli-002)
+# sgcli_version: 0.0.2
+
 experiment_name: sgcli_geneformer_torch28_test_h100_n8
+# experiment_name: sgcli_geneformer_torch28_test_h100_n16
 # experiment_name: sgcli_geneformer_torch28_test_a10_n8
 # experiment_name: sgcli_002_geneformer_mmt_h100_n16_composer
 # experiment_name: sgcli_002_geneformer_mmt_a10_n8_composer
