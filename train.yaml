@@ -13,7 +13,8 @@
 # experiment_name: sgcli_geneformer_torch28_test_h100_n8
 # experiment_name: sgcli_geneformer_torch28_test_h100_n16
 # experiment_name: sgcli_geneformer_torch28_test_a10_n8
-experiment_name: sgcli_geneformer_torch28_mlflow36_h100_n8
+# experiment_name: sgcli_geneformer_torch28_mlflow36_h100_n8
+experiment_name: sgcli_geneformer_torch28_mlflow36_a10_n8
 # experiment_name: sgcli_002_geneformer_mmt_h100_n16_composer
 # experiment_name: sgcli_002_geneformer_mmt_a10_n8_composer
 environment:
@@ -41,11 +42,11 @@ environment:
   dependencies: dependencies.yaml
 compute:
   gpus: 8
-  gpu_type: h100  # Single node for mlflow 3.6 test
+  gpu_type: a10  # A10 for mlflow 3.6 test
+  # gpus: 8
+  # gpu_type: h100  # Single node for mlflow 3.6 test
   # gpus: 16
   # gpu_type: h100  # Multi-node
-  # gpus: 8
-  # gpu_type: a10
 max_retries: 1  # force new snapshot
 code_source:
   type: snapshot
