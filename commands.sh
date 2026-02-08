@@ -1,5 +1,5 @@
 echo ">>> Installing Geneformer"
-cd /composer_geneformer_pretrain
+# Already in $HOME/composer_geneformer_pretrain from train.yaml command
 sh geneformer_prep.sh 
 
 echo ">>> Installing dependencies"

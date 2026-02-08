@@ -23,7 +23,7 @@ environment:
     NCCL_DEBUG: "INFO"
     NCCL_SOCKET_IFNAME: "eth"            # Use eth interfaces (auto-match eth0, eth1, etc.)
     NCCL_IB_DISABLE: "1"                 # Disable InfiniBand if not available
-    NCCL_ASYNC_ERROR_HANDLING: "1"       # Better async error handling
+    TORCH_NCCL_ASYNC_ERROR_HANDLING: "1"  # Better async error handling (replaces deprecated NCCL_ASYNC_ERROR_HANDLING)
     NCCL_TIMEOUT: "1800"                 # 30 min timeout for large barrier ops
     # PyTorch distributed settings
     TORCH_DISTRIBUTED_DEBUG: "DETAIL"    # More verbose debugging
