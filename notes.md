@@ -135,7 +135,7 @@ environment:
 |--------|-------|--------|--------|
 | `mmt_test_torch27` | 2.7 | <3.0 | Baseline |
 | `mmt_test_torch28` | 2.8 | <3.0 | Working |
-| `mmt_test_torch28_mlflow36` | 2.8 | >=3.6 | Testing |
+| `mmt_test_torch28_mlflow36` | 2.8 | >=3.6 | **Working** ✓ (H100 16 GPUs verified) |
 
 ---
 
