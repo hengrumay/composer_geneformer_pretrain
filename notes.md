@@ -13,7 +13,7 @@ MosaicML Composer 0.32.1 has two conflicting constraints:
 
 ## Solution 1: PyTorch 2.8 + MLflow <3.0 (Branch: `mmt_test_torch28`)
 
-Use `mosaicml[mlflow]==0.32.1` and force-reinstall torch 2.8 afterwards.
+Use `mosaicml[mlflow]==0.32.1`, then uninstall existing torch and install torch 2.8.
 
 **`dependencies.yaml`**:
 ```yaml
@@ -32,7 +32,7 @@ dependencies:
 ```bash
 pip install -r requirements.txt
 
-# Uninstall and reinstall torch 2.8
+# Uninstall existing torch (e.g., 2.7.0) and install torch 2.8
 pip uninstall -y torch torchvision torchaudio
 pip install --no-cache-dir torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
   --index-url https://download.pytorch.org/whl/cu126
@@ -64,7 +64,7 @@ dependencies:
 ```bash
 pip install -r requirements.txt
 
-# Uninstall and reinstall torch 2.8
+# Uninstall existing torch (e.g., 2.7.0) and install torch 2.8
 pip uninstall -y torch torchvision torchaudio
 pip install --no-cache-dir torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
   --index-url https://download.pytorch.org/whl/cu126
